@@ -1,6 +1,6 @@
 {
   "vmConfiguration": {
-    "namePrefix": "HARDEV-VM",
+    "namePrefix": "HARDEV-",
     "adminPassword": "",
     "domain": {
       "password": "",

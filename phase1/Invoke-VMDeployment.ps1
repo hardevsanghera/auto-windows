@@ -108,25 +108,81 @@ function Invoke-InteractiveDeployment {
     # Get admin password
     $adminPassword = Get-AdminPassword -Config $Config
     
-    # Prepare deployment inputs
-    $deploymentInputs = @"
-$vmName
-$adminPassword
-$adminPassword
-y
-
-"@
+    # Get Prism Central password using password manager
+    . (Join-Path $PSScriptRoot "..\PasswordManager.ps1")
+    Write-Host "Prism Central Password:" -ForegroundColor Cyan
+    $pcSecurePassword = Get-AdminPassword -Username $Config.prismCentral.username
+    $pcPassword = ""
+    if ($pcSecurePassword) {
+        $pcPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pcSecurePassword))
+    }
     
-    # Write inputs to temp file first
-    $deploymentInputs | Set-Content "$env:TEMP\deployment_input.txt"
+    # Create automation input file for VM deployment
+    $automationFile = Join-Path $WorkingDirectory "vm_automation_input.json"
+    $automationData = @{
+        vm_name = $vmName
+        admin_password = $adminPassword
+        confirm_password = $adminPassword
+        pc_password = $pcPassword
+        proceed_deployment = "y"
+    }
+    $automationData | ConvertTo-Json | Set-Content $automationFile
     
-    # Execute VM deployment
+    # Execute VM deployment with automation support
     Write-Host "Deploying VM: $vmName" -ForegroundColor Cyan
-    $deployProcess = Start-Process -FilePath $PythonExe -ArgumentList "deploy_win_vm.py", "--deploy" -Wait -PassThru -NoNewWindow -RedirectStandardInput "$env:TEMP\deployment_input.txt"
+    
+    # Set environment variable to indicate automated mode
+    $env:VM_AUTOMATION_FILE = $automationFile
+    
+    try {
+        # Copy enhanced automation wrapper to deployment directory
+        $automationWrapper = Join-Path $PSScriptRoot "..\deploy_vm_automated_v4.py"
+        $deploymentDir = Join-Path $WorkingDirectory "repos\deploy_win_vm_v1"
+        $wrapperDestination = Join-Path $deploymentDir "deploy_vm_automated.py"
+        
+        Copy-Item $automationWrapper $wrapperDestination -Force
+        
+        # Use virtual environment Python instead of global Python
+        $venvPython = Join-Path $deploymentDir "venv\Scripts\python.exe"
+        if (-not (Test-Path $venvPython)) {
+            throw "Virtual environment Python not found at: $venvPython"
+        }
+        
+        # Run the enhanced automation wrapper with virtual environment Python and capture output
+        $deployProcess = Start-Process -FilePath $venvPython -ArgumentList "deploy_vm_automated.py" -Wait -PassThru -NoNewWindow -WorkingDirectory $deploymentDir -RedirectStandardOutput "deployment_output.txt" -RedirectStandardError "deployment_error.txt"
+        
+        # Clean up automation file and environment variable after process completes
+        if (Test-Path $automationFile) { Remove-Item $automationFile -Force }
+        Remove-Item Env:VM_AUTOMATION_FILE -ErrorAction SilentlyContinue
+    }
+    finally {
+        # Ensure cleanup in case of exceptions
+        if (Test-Path $automationFile) { Remove-Item $automationFile -Force -ErrorAction SilentlyContinue }
+        Remove-Item Env:VM_AUTOMATION_FILE -ErrorAction SilentlyContinue
+    }
     
     if ($deployProcess.ExitCode -eq 0) {
-        # Parse deployment results
-        $result = Parse-DeploymentResults -LogOutput $deploymentOutput
+        # Read captured output files
+        $outputFile = Join-Path $deploymentDir "deployment_output.txt"
+        $errorFile = Join-Path $deploymentDir "deployment_error.txt"
+        
+        $capturedOutput = ""
+        if (Test-Path $outputFile) {
+            $capturedOutput = Get-Content $outputFile -Raw
+            Write-Host $capturedOutput
+        }
+        
+        $capturedErrors = ""
+        if (Test-Path $errorFile) {
+            $capturedErrors = Get-Content $errorFile -Raw
+            if ($capturedErrors) {
+                Write-Host "Deployment Errors:" -ForegroundColor Yellow
+                Write-Host $capturedErrors -ForegroundColor Red
+            }
+        }
+        
+        # Parse deployment results from captured output
+        $result = Parse-DeploymentResults -LogOutput $capturedOutput
         
         Write-Host "VM deployment completed successfully!" -ForegroundColor Green
         Write-Host "VM UUID: $($result.VMUUID)" -ForegroundColor Green
@@ -164,7 +220,26 @@ function Get-VMName {
     if ($Config.vmConfiguration.namePrefix) {
         $prefix = $Config.vmConfiguration.namePrefix
         $timestamp = Get-Date -Format "MMdd-HHmm"
-        return "$prefix$timestamp"
+        $fullName = "$prefix$timestamp"
+        
+        # Ensure VM name doesn't exceed 15 characters (Windows computer name limit)
+        if ($fullName.Length -gt 15) {
+            # Truncate prefix and add shorter timestamp
+            $shortTimestamp = Get-Date -Format "MMdd"
+            $maxPrefixLength = 15 - $shortTimestamp.Length
+            $truncatedPrefix = $prefix.Substring(0, [Math]::Min($prefix.Length, $maxPrefixLength))
+            $fullName = "$truncatedPrefix$shortTimestamp"
+            
+            # If still too long, use a more aggressive approach
+            if ($fullName.Length -gt 15) {
+                $shortTimestamp = Get-Date -Format "Hmm"  # Hour + minute
+                $maxPrefixLength = 15 - $shortTimestamp.Length
+                $truncatedPrefix = $prefix.Substring(0, [Math]::Min($prefix.Length, $maxPrefixLength))
+                $fullName = "$truncatedPrefix$shortTimestamp"
+            }
+        }
+        
+        return $fullName
     }
     
     # Prompt for VM name
@@ -192,7 +267,19 @@ function Get-AdminPassword {
         return $Config.vmConfiguration.adminPassword
     }
     
-    # Prompt for password securely
+    # Import password manager
+    . (Join-Path $PSScriptRoot "..\PasswordManager.ps1")
+    
+    # Use password manager for VM admin password
+    Write-Host "VM Administrator Password:" -ForegroundColor Cyan
+    $securePassword = Get-AdminPassword -Username "vm-administrator"
+    
+    if ($securePassword) {
+        return [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+    }
+    
+    # Fallback to manual prompt if password manager fails
+    Write-Host "⚠️  Password manager unavailable, using manual entry" -ForegroundColor Yellow
     do {
         $password = Read-Host "Enter Administrator password (minimum 4 characters)" -AsSecureString
         $confirmPassword = Read-Host "Confirm Administrator password" -AsSecureString

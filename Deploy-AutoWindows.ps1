@@ -33,6 +33,9 @@
 .PARAMETER NonInteractive
     Run in non-interactive mode (use configuration defaults)
 
+.PARAMETER DelPw
+    Delete cached passwords and exit (use when you need to change credentials)
+
 .EXAMPLE
     .\Deploy-AutoWindows.ps1
     
@@ -47,6 +50,11 @@
     .\Deploy-AutoWindows.ps1 -Phase 2 -ConfigDirectory "custom-config"
     
     Run only Phase 2 with custom configuration directory
+
+.EXAMPLE
+    .\Deploy-AutoWindows.ps1 -DelPw
+    
+    Delete cached passwords for admin users
 
 .NOTES
     Author: Hardev Sanghera
@@ -79,7 +87,10 @@ param(
     [switch]$SkipPrerequisites,
     
     [Parameter(Mandatory = $false)]
-    [switch]$NonInteractive
+    [switch]$NonInteractive,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$DelPw
 )
 
 # Set error handling
@@ -92,6 +103,27 @@ $Script:ExecutionResults = @{
     Phase1 = @{ Executed = $false; Success = $false; Results = $null }
     Phase2 = @{ Executed = $false; Success = $false; Results = $null }
     Overall = @{ Success = $false; Duration = $null; Summary = "" }
+}
+
+# Import password management functions
+. (Join-Path $PSScriptRoot "PasswordManager.ps1")
+
+# Handle password deletion if requested
+if ($DelPw) {
+    Write-Host ""
+    Write-Host "🗑️  Password Deletion Requested" -ForegroundColor Yellow
+    Write-Host "================================" -ForegroundColor Yellow
+    
+    if (Remove-CachedPassword) {
+        Write-Host ""
+        Write-Host "✓ Password cache cleared successfully. You will be prompted for password on next run." -ForegroundColor Green
+    } else {
+        Write-Host ""
+        Write-Host "❌ Failed to clear password cache." -ForegroundColor Red
+    }
+    
+    Write-Host ""
+    exit 0
 }
 
 #region Logging Functions
