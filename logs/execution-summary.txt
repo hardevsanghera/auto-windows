@@ -1,14 +1,14 @@
 Auto-Windows Deployment Summary
 ==============================
-Start Time: 2025-10-21 13:36:23
-End Time: 2025-10-21 13:37:07
+Start Time: 2025-10-21 13:38:12
+End Time: 2025-10-21 13:38:57
 Duration: 00:00:44
 
 Phase Results:
 Phase 1 (VM Deployment): SUCCESS ✓
   VM Name: HARDEV-1021
-  VM UUID: 801ffc72-9417-46dd-90e6-224c6ae510fb
-  Task UUID: a7a06913-3d33-4de0-b6d7-a406a8d9b1ee
+  VM UUID: 44fee51f-5424-4752-8b66-e74e1ef317ab
+  Task UUID: d1ab6c48-4e55-4a85-bb87-583eba70f518
 Phase 2 (API Environment): SKIPPED
 
 Overall Status: SUCCESS ✓
