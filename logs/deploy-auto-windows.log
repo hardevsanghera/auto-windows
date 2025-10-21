@@ -1207,3 +1207,45 @@ Next Steps:
 Documentation: https://github.com/hardevsanghera/ntnx-v4api-cats
 [2025-10-21 13:38:57] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
 [2025-10-21 13:38:57] [SUCCESS] [MAIN] Auto-Windows deployment completed successfully!
+[2025-10-21 19:20:03] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 19:20:03] [INFO] [MAIN] Phase selection: 1
+[2025-10-21 19:20:03] [DEBUG] [MAIN] Script root: 
+[2025-10-21 19:20:03] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 19:20:03] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 19:20:03] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 19:20:03] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 19:20:03] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 19:20:03] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 19:20:04] [SUCCESS] [MAIN] Disk space check passed: 30.89GB available
+[2025-10-21 19:20:04] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 19:20:04] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 19:20:04] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-21 19:20:07] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 19:20:07] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 19:20:07] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 19:20:07] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-21 19:20:07] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 19:21:10] [SUCCESS] [MAIN] Phase 1 completed successfully!
+[2025-10-21 19:21:10] [SUCCESS] [MAIN] VM UUID: 256a9e97-24ef-4c49-9f29-63d91419f034
+[2025-10-21 19:21:10] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 19:20:03
+End Time: 2025-10-21 19:21:10
+Duration: 00:01:07
+
+Phase Results:
+Phase 1 (VM Deployment): SUCCESS ✓
+  VM Name: HARDEV-1021
+  VM UUID: 256a9e97-24ef-4c49-9f29-63d91419f034
+  Task UUID: 6128f17e-6ba8-4514-b853-e8e83b3357ac
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: SUCCESS ✓
+Next Steps:
+1. Configure Nutanix Prism Central details in the API environment
+2. Use VS Code to develop and test API scripts
+3. Follow the documentation for detailed usage instructions
+
+Documentation: https://github.com/hardevsanghera/ntnx-v4api-cats
+[2025-10-21 19:21:10] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 19:21:11] [SUCCESS] [MAIN] Auto-Windows deployment completed successfully!
