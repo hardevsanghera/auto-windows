@@ -73,7 +73,11 @@ function Read-SecureInput {
     }
     else {
         $input = Read-Host $promptText
-        return if ($input) { $input } else { $Default }
+        if ($input) { 
+            return $input 
+        } else { 
+            return $Default 
+        }
     }
 }
 
@@ -115,10 +119,12 @@ function Start-InteractiveSetup {
     
     $config.prismCentral.ip = Read-SecureInput -Prompt "Prism Central IP address" -Default $config.prismCentral.ip
     $config.prismCentral.username = Read-SecureInput -Prompt "Prism Central username" -Default $config.prismCentral.username
-    $config.prismCentral.password = Read-SecureInput -Prompt "Prism Central password" -IsPassword
+    
+    # Only prompt for password if not in non-interactive mode
+    Write-Host "Note: Passwords will not be stored in configuration files for security." -ForegroundColor Yellow
+    Write-Host "You will be prompted for passwords during deployment." -ForegroundColor Yellow
     
     $config.vmConfiguration.namePrefix = Read-SecureInput -Prompt "VM name prefix" -Default $config.vmConfiguration.namePrefix
-    $config.vmConfiguration.adminPassword = Read-SecureInput -Prompt "VM Administrator password" -IsPassword
     
     # Domain configuration
     $joinDomain = Read-Host "Join VMs to domain? (y/N)"
@@ -126,77 +132,168 @@ function Start-InteractiveSetup {
         $config.vmConfiguration.domain.join = $true
         $config.vmConfiguration.domain.name = Read-SecureInput -Prompt "Domain name"
         $config.vmConfiguration.domain.username = Read-SecureInput -Prompt "Domain admin username"
-        $config.vmConfiguration.domain.password = Read-SecureInput -Prompt "Domain admin password" -IsPassword
     }
     
-    # Phase 2 Configuration
+    # Phase 2 Configuration (basic setup)
     Write-Header "Phase 2: API Environment Configuration"
     
     $installPath = Read-SecureInput -Prompt "API environment install path" -Default "C:\Dev\ntnx-v4api-cats"
-    $config.environment.installPath = $installPath
     
     # Component selection
     Write-Host "Select components to install:" -ForegroundColor Yellow
-    $config.components.powershell7.install = (Read-Host "Install PowerShell 7? (Y/n)") -notmatch "^[Nn]"
-    $config.components.python.install = (Read-Host "Install Python 3.13+? (Y/n)") -notmatch "^[Nn]"
-    $config.components.vscode.install = (Read-Host "Install Visual Studio Code? (Y/n)") -notmatch "^[Nn]"
-    $config.components.git.install = (Read-Host "Install Git for Windows? (Y/n)") -notmatch "^[Nn]"
+    $installPS7 = (Read-Host "Install PowerShell 7? (Y/n)") -notmatch "^[Nn]"
+    $installPython = (Read-Host "Install Python 3.13+? (Y/n)") -notmatch "^[Nn]"
+    $installVSCode = (Read-Host "Install Visual Studio Code? (Y/n)") -notmatch "^[Nn]"
+    $installGit = (Read-Host "Install Git for Windows? (Y/n)") -notmatch "^[Nn]"
     
     # Save configuration
     Write-Header "Saving Configuration"
     
     $configName = Read-SecureInput -Prompt "Configuration name" -Default $selectedTemplate
-    Save-Configuration -Config $config -Name $configName -Type $selectedTemplate
+    Save-Configuration -Config $config -InstallPath $installPath -Components @{
+        PowerShell7 = $installPS7
+        Python = $installPython
+        VSCode = $installVSCode
+        Git = $installGit
+    } -Type $selectedTemplate
     
     Write-Host "Configuration saved successfully!" -ForegroundColor Green
-    Write-Host "You can now run: .\Deploy-AutoWindows.ps1" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor Cyan
+    Write-Host "1. Review the configuration files in the config\ directory" -ForegroundColor White
+    Write-Host "2. Run: .\Deploy-AutoWindows.ps1" -ForegroundColor White
+    Write-Host ""
 }
 
 function Get-BaseConfiguration {
     param([string]$Type)
     
-    switch ($Type) {
-        "dev" {
-            return Get-Content "config\deployment-config.dev.json" -Raw | ConvertFrom-Json
+    $defaultConfig = @{
+        prismCentral = @{
+            ip = ""
+            username = ""
+            password = ""
+            port = 9440
         }
-        "prod" {
-            return Get-Content "config\deployment-config.prod.json" -Raw | ConvertFrom-Json  
+        vmConfiguration = @{
+            namePrefix = "WIN-AUTO-"
+            adminPassword = ""
+            domain = @{
+                join = $false
+                name = ""
+                username = ""
+                password = ""
+            }
         }
-        "custom" {
-            return Get-Content "config\deployment-config.json" -Raw | ConvertFrom-Json
+        deployment = @{
+            mode = "interactive"
+            autoSelectResources = $false
+            selectedResources = @{
+                cluster = ""
+                subnet = ""
+                image = ""
+                sysprepFile = ""
+            }
         }
-        default {
-            return Get-Content "config\deployment-config.json" -Raw | ConvertFrom-Json
+        monitoring = @{
+            checkInterval = 30
+            maxWaitTime = 1800
+            enableNotifications = $false
         }
     }
+    
+    # Try to load template if it exists
+    try {
+        switch ($Type) {
+            "dev" {
+                if (Test-Path "config\deployment-config.dev.json") {
+                    return Get-Content "config\deployment-config.dev.json" -Raw | ConvertFrom-Json
+                }
+            }
+            "prod" {
+                if (Test-Path "config\deployment-config.prod.json") {
+                    return Get-Content "config\deployment-config.prod.json" -Raw | ConvertFrom-Json
+                }
+            }
+            "custom" {
+                if (Test-Path "config\deployment-config.json") {
+                    return Get-Content "config\deployment-config.json" -Raw | ConvertFrom-Json
+                }
+            }
+        }
+    }
+    catch {
+        Write-Host "Could not load template, using defaults" -ForegroundColor Yellow
+    }
+    
+    return [PSCustomObject]$defaultConfig
 }
 
 function Save-Configuration {
     param(
         [object]$Config,
-        [string]$Name,
+        [string]$InstallPath,
+        [hashtable]$Components,
         [string]$Type
     )
     
     $deploymentPath = "config\deployment-config.json"
     $environmentPath = "config\environment-config.json"
     
+    # Ensure config directory exists
+    if (!(Test-Path "config")) {
+        New-Item -Path "config" -ItemType Directory -Force | Out-Null
+    }
+    
     # Save deployment configuration
     $Config | ConvertTo-Json -Depth 10 | Set-Content $deploymentPath
     
-    # Create environment configuration if needed
-    if ($Type -eq "full") {
-        Copy-Item "config\environment-config.full.json" $environmentPath -Force
-    }
-    elseif ($Type -eq "minimal") {
-        Copy-Item "config\environment-config.minimal.json" $environmentPath -Force
-    }
-    else {
-        # Use default environment config
-        if (!(Test-Path $environmentPath)) {
-            Copy-Item "config\environment-config.json" $environmentPath -Force
+    # Create environment configuration
+    $envConfig = @{
+        environment = @{
+            installPath = $InstallPath
+            skipGitClone = $false
+            forceReinstall = $false
+        }
+        components = @{
+            powershell7 = @{
+                install = $Components.PowerShell7
+                required = $true
+            }
+            python = @{
+                install = $Components.Python
+                version = "3.13+"
+                required = $true
+            }
+            vscode = @{
+                install = $Components.VSCode
+                configureWorkspace = $true
+                extensions = @(
+                    "ms-python.python",
+                    "ms-vscode.powershell",
+                    "redhat.vscode-yaml",
+                    "donjayamanne.githistory",
+                    "eamodio.gitlens"
+                )
+            }
+            git = @{
+                install = $Components.Git
+                required = $true
+            }
+        }
+        postInstall = @{
+            openVSCode = $true
+            activateEnvironment = $true
+            runSampleScript = $false
+        }
+        validation = @{
+            testConnections = $true
+            verifyInstallations = $true
+            generateReport = $true
         }
     }
+    
+    $envConfig | ConvertTo-Json -Depth 10 | Set-Content $environmentPath
     
     Write-Host "Configuration files created:" -ForegroundColor Green
     Write-Host "  $deploymentPath" -ForegroundColor Gray
@@ -224,8 +321,8 @@ function Test-Configuration {
                 $issues += "Prism Central username is required"  
             }
             
-            # Test connectivity (if credentials provided)
-            if ($deploymentConfig.prismCentral.ip -and $deploymentConfig.prismCentral.username -and $deploymentConfig.prismCentral.password) {
+            # Test connectivity if IP is provided
+            if ($deploymentConfig.prismCentral.ip) {
                 Write-Host "Testing Prism Central connectivity..." -ForegroundColor Cyan
                 try {
                     Test-Connection -ComputerName $deploymentConfig.prismCentral.ip -Count 1 -ErrorAction Stop | Out-Null
@@ -293,31 +390,62 @@ function Reset-Configuration {
         return
     }
     
-    # Reset to defaults
-    Copy-Item "config\deployment-config.dev.json" "config\deployment-config.json" -Force
-    Copy-Item "config\environment-config.json" "config\environment-config.json" -Force
+    # Create config directory if it doesn't exist
+    if (!(Test-Path "config")) {
+        New-Item -Path "config" -ItemType Directory -Force | Out-Null
+    }
+    
+    # Reset to defaults by copying templates if they exist, otherwise create basic configs
+    if (Test-Path "config\deployment-config.dev.json") {
+        Copy-Item "config\deployment-config.dev.json" "config\deployment-config.json" -Force
+    }
+    else {
+        # Create basic deployment config
+        $defaultConfig = Get-BaseConfiguration -Type "custom"
+        $defaultConfig | ConvertTo-Json -Depth 10 | Set-Content "config\deployment-config.json"
+    }
+    
+    if (Test-Path "config\environment-config.full.json") {
+        Copy-Item "config\environment-config.full.json" "config\environment-config.json" -Force
+    }
+    else {
+        # Create basic environment config
+        Save-Configuration -Config (Get-BaseConfiguration -Type "custom") -InstallPath "C:\Dev\ntnx-v4api-cats" -Components @{
+            PowerShell7 = $true
+            Python = $true
+            VSCode = $true
+            Git = $true
+        } -Type "custom"
+    }
     
     Write-Host "✓ Configuration reset to defaults" -ForegroundColor Green
 }
 
 # Main execution
-switch ($Action) {
-    "Setup" {
-        if ($Interactive) {
-            Start-InteractiveSetup
+try {
+    switch ($Action) {
+        "Setup" {
+            if ($Interactive) {
+                Start-InteractiveSetup
+            }
+            else {
+                Write-Host "Use -Interactive for guided setup" -ForegroundColor Yellow
+                Write-Host "Example: .\Setup-Configuration.ps1 -Action Setup -Interactive" -ForegroundColor Gray
+                Write-Host "Or manually edit configuration files in the config\ directory" -ForegroundColor Gray
+            }
         }
-        else {
-            Write-Host "Use -Interactive for guided setup" -ForegroundColor Yellow
-            Write-Host "Or manually edit configuration files in the config\ directory" -ForegroundColor Gray
+        "Validate" {
+            Test-Configuration -Type $ConfigType
+        }
+        "Test" {
+            Test-Configuration -Type $ConfigType
+        }
+        "Reset" {
+            Reset-Configuration
         }
     }
-    "Validate" {
-        Test-Configuration -Type $ConfigType
-    }
-    "Test" {
-        Test-Configuration -Type $ConfigType
-    }
-    "Reset" {
-        Reset-Configuration
-    }
+}
+catch {
+    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
 }

@@ -275,7 +275,7 @@ function Invoke-Phase1 {
         $phase1Params = @{
             ConfigPath = Join-Path $ConfigDirectory "deployment-config.json"
             LogPath = Join-Path $LogDirectory "phase1.log"  
-            WorkingDirectory = $WorkingDirectory
+            WorkingDirectory = (Resolve-Path $WorkingDirectory).Path
         }
         
         Write-Log "Starting Phase 1 execution with parameters:" -Level "INFO"
@@ -323,7 +323,7 @@ function Invoke-Phase2 {
         $phase2Params = @{
             ConfigPath = Join-Path $ConfigDirectory "environment-config.json"
             LogPath = Join-Path $LogDirectory "phase2.log"
-            WorkingDirectory = $WorkingDirectory
+            WorkingDirectory = (Resolve-Path $WorkingDirectory).Path
         }
         
         Write-Log "Starting Phase 2 execution with parameters:" -Level "INFO"

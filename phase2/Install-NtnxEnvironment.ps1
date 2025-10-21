@@ -375,6 +375,3 @@ function Start-PostInstallationTasks {
         return $false
     }
 }
-
-# Export functions
-Export-ModuleMember -Function Invoke-NutanixEnvironmentInstall, Test-InstallationScript, Get-ComponentVersions, Test-NutanixAPIEnvironment, Start-PostInstallationTasks

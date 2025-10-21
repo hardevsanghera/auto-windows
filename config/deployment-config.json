@@ -1,33 +1,33 @@
 {
-  "prismCentral": {
-    "ip": "10.1.1.100",
-    "username": "admin",
-    "password": "",
-    "port": 9440
-  },
   "vmConfiguration": {
-    "namePrefix": "WIN-AUTO-",
+    "namePrefix": "HARDEV-VM",
     "adminPassword": "",
     "domain": {
+      "password": "",
       "join": false,
       "name": "",
-      "username": "",
-      "password": ""
+      "username": ""
     }
+  },
+  "prismCentral": {
+    "password": "",
+    "username": "admin",
+    "port": 9440,
+    "ip": "10.38.19.9"
   },
   "deployment": {
     "mode": "interactive",
-    "autoSelectResources": false,
     "selectedResources": {
-      "cluster": "",
       "subnet": "",
       "image": "",
+      "cluster": "",
       "sysprepFile": ""
-    }
+    },
+    "autoSelectResources": false
   },
   "monitoring": {
-    "checkInterval": 30,
     "maxWaitTime": 1800,
-    "enableNotifications": false
+    "enableNotifications": false,
+    "checkInterval": 30
   }
 }

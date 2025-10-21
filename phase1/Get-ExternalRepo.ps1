@@ -78,7 +78,7 @@ function Get-ExternalRepository {
                     Remove-Item $LocalPath -Recurse -Force -ErrorAction SilentlyContinue
                 }
                 finally {
-                    if (Get-Location -eq $LocalPath) {
+                    if ((Get-Location).Path -eq $LocalPath) {
                         Pop-Location
                     }
                 }
@@ -104,7 +104,7 @@ function Get-ExternalRepository {
                 Write-Host "Repository cloned successfully!" -ForegroundColor Green
                 
                 # Verify clone
-                if (Test-Path $LocalPath -and (Get-ChildItem $LocalPath).Count -gt 0) {
+                if ((Test-Path $LocalPath) -and ((Get-ChildItem $LocalPath).Count -gt 0)) {
                     Write-Host "Clone verification passed" -ForegroundColor Green
                     return $true
                 }
@@ -267,6 +267,3 @@ function Get-RepositoryInfo {
         Pop-Location
     }
 }
-
-# Export functions
-Export-ModuleMember -Function Get-ExternalRepository, Test-GitAvailability, Install-GitIfMissing, Get-RepositoryInfo

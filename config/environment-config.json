@@ -1,18 +1,23 @@
 {
   "environment": {
-    "installPath": "C:\\Dev\\ntnx-v4api-cats",
     "skipGitClone": false,
+    "installPath": "C:\\Dev\\ntnx-v4api-cats",
     "forceReinstall": false
+  },
+  "postInstall": {
+    "activateEnvironment": true,
+    "runSampleScript": false,
+    "openVSCode": true
+  },
+  "validation": {
+    "generateReport": true,
+    "verifyInstallations": true,
+    "testConnections": true
   },
   "components": {
     "powershell7": {
-      "install": true,
-      "required": true
-    },
-    "python": {
-      "install": true,
-      "version": "3.13+",
-      "required": true
+      "required": true,
+      "install": true
     },
     "vscode": {
       "install": true,
@@ -25,19 +30,14 @@
         "eamodio.gitlens"
       ]
     },
-    "git": {
+    "python": {
       "install": true,
+      "version": "3.13+",
       "required": true
+    },
+    "git": {
+      "required": true,
+      "install": true
     }
-  },
-  "postInstall": {
-    "openVSCode": true,
-    "activateEnvironment": true,
-    "runSampleScript": false
-  },
-  "validation": {
-    "testConnections": true,
-    "verifyInstallations": true,
-    "generateReport": true
   }
 }

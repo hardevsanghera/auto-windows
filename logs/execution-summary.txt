@@ -1,0 +1,18 @@
+Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 12:09:30
+End Time: 2025-10-21 12:10:52
+Duration: 00:01:21
+
+Phase Results:
+Phase 1 (VM Deployment): SUCCESS ✓
+  VM Name: HARDEV-VM1021-1210
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: SUCCESS ✓
+Next Steps:
+1. Configure Nutanix Prism Central details in the API environment
+2. Use VS Code to develop and test API scripts
+3. Follow the documentation for detailed usage instructions
+
+Documentation: https://github.com/hardevsanghera/ntnx-v4api-cats

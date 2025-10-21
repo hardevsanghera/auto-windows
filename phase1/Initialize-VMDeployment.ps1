@@ -87,7 +87,12 @@ function Test-Prerequisites {
     # Check Python availability
     try {
         $pythonVersion = python --version 2>&1
-        Write-Log "Python found: $pythonVersion" -Level "SUCCESS"
+        if ($LASTEXITCODE -eq 0 -and $pythonVersion -match "Python \d+\.\d+") {
+            Write-Log "Python found: $pythonVersion" -Level "SUCCESS"
+        }
+        else {
+            Write-Log "Python not found in PATH. Error: $pythonVersion" -Level "WARN"
+        }
     }
     catch {
         Write-Log "Python not found in PATH. Will attempt installation." -Level "WARN"
@@ -168,17 +173,68 @@ function Install-PythonDependencies {
     
     Write-Log "Setting up Python environment for VM deployment..."
     
+    # Find Python executable - check multiple locations
+    $pythonPaths = @(
+        "C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python313\python.exe",
+        "C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python312\python.exe",
+        "C:\Users\$env:USERNAME\AppData\Local\Programs\Python\Python311\python.exe",
+        "C:\Python313\python.exe",
+        "C:\Python312\python.exe",
+        "C:\Python311\python.exe"
+    )
+    
+    $pythonExe = $null
+    foreach ($path in $pythonPaths) {
+        if (Test-Path $path) {
+            try {
+                $version = & $path --version 2>&1
+                if ($LASTEXITCODE -eq 0 -and $version -match "Python \d+\.\d+") {
+                    $pythonExe = $path
+                    Write-Log "Found Python: $version at $path" -Level "SUCCESS"
+                    break
+                }
+            }
+            catch {
+                continue
+            }
+        }
+    }
+    
+    if (-not $pythonExe) {
+        # Try system PATH as fallback
+        try {
+            $version = python --version 2>&1
+            if ($LASTEXITCODE -eq 0 -and $version -match "Python \d+\.\d+") {
+                $pythonExe = "python"
+                Write-Log "Found Python in PATH: $version" -Level "SUCCESS"
+            }
+        }
+        catch {
+            # Ignore
+        }
+    }
+    
+    if (-not $pythonExe) {
+        Write-Log "Python is not available. Please install Python 3.7+ first." -Level "ERROR"
+        Write-Log "Download from: https://www.python.org/downloads/" -Level "ERROR"
+        return @{ Success = $false; PythonExe = $null }
+    }
+    
     try {
         Push-Location $RepoPath
         
-        # Check if requirements.txt exists
+        # Check if requirements.txt exists in the VM deployment repo
         if (Test-Path "requirements.txt") {
             Write-Log "Found requirements.txt, installing dependencies..."
             
             # Create virtual environment if it doesn't exist
             if (!(Test-Path "venv")) {
                 Write-Log "Creating Python virtual environment..."
-                python -m venv venv
+                & $pythonExe -m venv venv
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Log "Failed to create virtual environment" -Level "ERROR"
+                    return $false
+                }
             }
             
             # Activate virtual environment and install dependencies
@@ -187,25 +243,25 @@ function Install-PythonDependencies {
                 & "venv\Scripts\Activate.ps1"
                 
                 Write-Log "Installing Python dependencies..."
-                python -m pip install --upgrade pip
-                python -m pip install -r requirements.txt
+                & $pythonExe -m pip install --upgrade pip
+                & $pythonExe -m pip install -r requirements.txt
                 
                 Write-Log "Python environment setup completed" -Level "SUCCESS"
-                return $true
+                return @{ Success = $true; PythonExe = $pythonExe }
             }
             else {
                 Write-Log "Virtual environment activation script not found" -Level "ERROR"
-                return $false
+                return @{ Success = $false; PythonExe = $null }
             }
         }
         else {
             Write-Log "requirements.txt not found in repository" -Level "WARN"
-            return $false
+            return @{ Success = $false; PythonExe = $null }
         }
     }
     catch {
         Write-Log "Failed to setup Python environment: $($_.Exception.Message)" -Level "ERROR"
-        return $false
+        return @{ Success = $false; PythonExe = $null }
     }
     finally {
         Pop-Location
@@ -232,13 +288,14 @@ function Start-Phase1Deployment {
     }
     
     # Setup Python environment
-    if (!(Install-PythonDependencies -RepoPath $repoPath)) {
+    $pythonSetup = Install-PythonDependencies -RepoPath $repoPath
+    if (!$pythonSetup.Success) {
         throw "Failed to setup Python environment"
     }
     
     # Execute VM deployment
     Write-Log "Starting VM deployment process..."
-    $deploymentResult = Invoke-VMDeploymentProcess -RepoPath $repoPath -Config $Config
+    $deploymentResult = Invoke-VMDeploymentProcess -RepoPath $repoPath -Config $Config -PythonExe $pythonSetup.PythonExe
     
     if ($deploymentResult.Success) {
         Write-Log "Phase 1 completed successfully!" -Level "SUCCESS"

@@ -1,0 +1,287 @@
+[2025-10-21 11:50:12] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 11:50:12] [INFO] [MAIN] Phase selection: All
+[2025-10-21 11:50:12] [DEBUG] [MAIN] Script root: 
+[2025-10-21 11:50:12] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 11:50:12] [SUCCESS] [MAIN] Created directory: temp
+[2025-10-21 11:50:12] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 11:50:12] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 11:50:12] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 11:50:12] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 11:50:12] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 11:50:13] [SUCCESS] [MAIN] Disk space check passed: 33.52GB available
+[2025-10-21 11:50:13] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 11:50:13] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 11:50:13] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=True
+[2025-10-21 11:50:20] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 11:50:20] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 11:50:20] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 11:50:20] [DEBUG] [MAIN]   WorkingDirectory = temp
+[2025-10-21 11:50:20] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 11:50:20] [ERROR] [MAIN] Phase 1 failed: The Export-ModuleMember cmdlet can only be called from inside a module.
+[2025-10-21 11:50:21] [ERROR] [MAIN] Auto-Windows deployment failed: The Export-ModuleMember cmdlet can only be called from inside a module.
+[2025-10-21 11:50:21] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 11:50:12
+End Time: 2025-10-21 11:50:21
+Duration: 00:00:08
+
+Phase Results:
+Phase 1 (VM Deployment): FAILED ✗
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues
+[2025-10-21 11:50:21] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 11:50:21] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: The Export-ModuleMember cmdlet can only be called from inside a module.
+[2025-10-21 11:52:21] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 11:52:21] [INFO] [MAIN] Phase selection: All
+[2025-10-21 11:52:21] [DEBUG] [MAIN] Script root: 
+[2025-10-21 11:52:21] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 11:52:21] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 11:52:21] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 11:52:21] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 11:52:21] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 11:52:21] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 11:52:22] [SUCCESS] [MAIN] Disk space check passed: 33.55GB available
+[2025-10-21 11:52:22] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 11:52:22] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 11:52:22] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=True
+[2025-10-21 11:52:31] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 11:52:31] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 11:52:31] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 11:52:31] [DEBUG] [MAIN]   WorkingDirectory = temp
+[2025-10-21 11:52:31] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 11:52:35] [ERROR] [MAIN] Phase 1 failed: Failed to clone VM deployment repository
+[2025-10-21 11:52:35] [ERROR] [MAIN] Auto-Windows deployment failed: Failed to clone VM deployment repository
+[2025-10-21 11:52:35] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 11:52:21
+End Time: 2025-10-21 11:52:35
+Duration: 00:00:13
+
+Phase Results:
+Phase 1 (VM Deployment): FAILED ✗
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues
+[2025-10-21 11:52:35] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 11:52:35] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: Failed to clone VM deployment repository
+[2025-10-21 11:53:07] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 11:53:07] [INFO] [MAIN] Phase selection: All
+[2025-10-21 11:53:07] [DEBUG] [MAIN] Script root: 
+[2025-10-21 11:53:07] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 11:53:07] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 11:53:07] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 11:53:07] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 11:53:07] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 11:53:07] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 11:53:08] [SUCCESS] [MAIN] Disk space check passed: 33.55GB available
+[2025-10-21 11:53:08] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 11:53:08] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 11:53:08] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=True
+[2025-10-21 11:53:12] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 11:53:12] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 11:53:12] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 11:53:12] [DEBUG] [MAIN]   WorkingDirectory = temp
+[2025-10-21 11:53:12] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 11:56:06] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 11:56:06] [INFO] [MAIN] Phase selection: 1
+[2025-10-21 11:56:06] [DEBUG] [MAIN] Script root: 
+[2025-10-21 11:56:06] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 11:56:06] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 11:56:06] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 11:56:06] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 11:56:06] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 11:56:07] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 11:56:07] [SUCCESS] [MAIN] Disk space check passed: 33.54GB available
+[2025-10-21 11:56:07] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 11:56:07] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 11:56:07] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-21 11:56:15] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 11:56:15] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 11:56:15] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 11:56:15] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-21 11:56:15] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 11:56:18] [ERROR] [MAIN] Phase 1 failed: Failed to setup Python environment
+[2025-10-21 11:56:18] [ERROR] [MAIN] Auto-Windows deployment failed: Failed to setup Python environment
+[2025-10-21 11:56:18] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 11:56:06
+End Time: 2025-10-21 11:56:18
+Duration: 00:00:11
+
+Phase Results:
+Phase 1 (VM Deployment): FAILED ✗
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues
+[2025-10-21 11:56:18] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 11:56:18] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: Failed to setup Python environment
+[2025-10-21 11:57:11] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 11:57:11] [INFO] [MAIN] Phase selection: 1
+[2025-10-21 11:57:11] [DEBUG] [MAIN] Script root: 
+[2025-10-21 11:57:11] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 11:57:11] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 11:57:11] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 11:57:11] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 11:57:11] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 11:57:11] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 11:57:11] [SUCCESS] [MAIN] Disk space check passed: 33.53GB available
+[2025-10-21 11:57:11] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 11:57:11] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 11:57:11] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-21 11:57:17] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 11:57:17] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 11:57:17] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 11:57:17] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-21 11:57:17] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 11:57:20] [ERROR] [MAIN] Phase 1 failed: Failed to setup Python environment
+[2025-10-21 11:57:20] [ERROR] [MAIN] Auto-Windows deployment failed: Failed to setup Python environment
+[2025-10-21 11:57:20] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 11:57:11
+End Time: 2025-10-21 11:57:20
+Duration: 00:00:09
+
+Phase Results:
+Phase 1 (VM Deployment): FAILED ✗
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues
+[2025-10-21 11:57:20] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 11:57:20] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: Failed to setup Python environment
+[2025-10-21 12:06:56] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 12:06:56] [INFO] [MAIN] Phase selection: 1
+[2025-10-21 12:06:56] [DEBUG] [MAIN] Script root: 
+[2025-10-21 12:06:56] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 12:06:56] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 12:06:56] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 12:06:56] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 12:06:56] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 12:06:56] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 12:06:57] [SUCCESS] [MAIN] Disk space check passed: 33.51GB available
+[2025-10-21 12:06:57] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 12:06:57] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 12:06:57] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-21 12:07:03] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 12:07:03] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 12:07:03] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 12:07:03] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-21 12:07:03] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 12:07:27] [ERROR] [MAIN] Phase 1 failed: VM deployment failed: Cannot convert 'System.Object[]' to the type 'System.String' required by parameter 'ArgumentList'. Specified method is not supported.
+[2025-10-21 12:07:27] [ERROR] [MAIN] Auto-Windows deployment failed: VM deployment failed: Cannot convert 'System.Object[]' to the type 'System.String' required by parameter 'ArgumentList'. Specified method is not supported.
+[2025-10-21 12:07:27] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 12:06:56
+End Time: 2025-10-21 12:07:27
+Duration: 00:00:31
+
+Phase Results:
+Phase 1 (VM Deployment): FAILED ✗
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues
+[2025-10-21 12:07:27] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 12:07:28] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: VM deployment failed: Cannot convert 'System.Object[]' to the type 'System.String' required by parameter 'ArgumentList'. Specified method is not supported.
+[2025-10-21 12:08:00] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 12:08:00] [INFO] [MAIN] Phase selection: 1
+[2025-10-21 12:08:00] [DEBUG] [MAIN] Script root: 
+[2025-10-21 12:08:00] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 12:08:00] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 12:08:00] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 12:08:00] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 12:08:00] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 12:08:01] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 12:08:01] [SUCCESS] [MAIN] Disk space check passed: 33.47GB available
+[2025-10-21 12:08:01] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 12:08:01] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 12:08:01] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-21 12:08:07] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 12:08:07] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 12:08:07] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 12:08:07] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-21 12:08:07] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 12:09:05] [ERROR] [MAIN] Phase 1 failed: VM deployment failed: This command cannot be run because either the parameter "RedirectStandardInput 'C:\Users\HARDEV~1.SAN\AppData\Local\Temp\deployment_input.txt'" has a value that is not valid or cannot be used with this command. Give a valid input and Run your command again.
+[2025-10-21 12:09:05] [ERROR] [MAIN] Auto-Windows deployment failed: VM deployment failed: This command cannot be run because either the parameter "RedirectStandardInput 'C:\Users\HARDEV~1.SAN\AppData\Local\Temp\deployment_input.txt'" has a value that is not valid or cannot be used with this command. Give a valid input and Run your command again.
+[2025-10-21 12:09:05] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 12:08:00
+End Time: 2025-10-21 12:09:05
+Duration: 00:01:04
+
+Phase Results:
+Phase 1 (VM Deployment): FAILED ✗
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues
+[2025-10-21 12:09:05] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 12:09:05] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: VM deployment failed: This command cannot be run because either the parameter "RedirectStandardInput 'C:\Users\HARDEV~1.SAN\AppData\Local\Temp\deployment_input.txt'" has a value that is not valid or cannot be used with this command. Give a valid input and Run your command again.
+[2025-10-21 12:09:30] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 12:09:30] [INFO] [MAIN] Phase selection: 1
+[2025-10-21 12:09:30] [DEBUG] [MAIN] Script root: 
+[2025-10-21 12:09:30] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 12:09:30] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 12:09:30] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 12:09:30] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 12:09:30] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 12:09:30] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 12:09:31] [SUCCESS] [MAIN] Disk space check passed: 33.46GB available
+[2025-10-21 12:09:31] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 12:09:31] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 12:09:31] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-21 12:09:34] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 12:09:34] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 12:09:34] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 12:09:34] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-21 12:09:34] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 12:10:52] [SUCCESS] [MAIN] Phase 1 completed successfully!
+[2025-10-21 12:10:52] [SUCCESS] [MAIN] VM UUID: 
+[2025-10-21 12:10:52] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 12:09:30
+End Time: 2025-10-21 12:10:52
+Duration: 00:01:21
+
+Phase Results:
+Phase 1 (VM Deployment): SUCCESS ✓
+  VM Name: HARDEV-VM1021-1210
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: SUCCESS ✓
+Next Steps:
+1. Configure Nutanix Prism Central details in the API environment
+2. Use VS Code to develop and test API scripts
+3. Follow the documentation for detailed usage instructions
+
+Documentation: https://github.com/hardevsanghera/ntnx-v4api-cats
+[2025-10-21 12:10:52] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 12:10:52] [SUCCESS] [MAIN] Auto-Windows deployment completed successfully!

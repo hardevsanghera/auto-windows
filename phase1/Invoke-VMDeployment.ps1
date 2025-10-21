@@ -19,7 +19,10 @@ function Invoke-VMDeploymentProcess {
         [string]$RepoPath,
         
         [Parameter(Mandatory = $true)]
-        [object]$Config
+        [object]$Config,
+        
+        [Parameter(Mandatory = $false)]
+        [string]$PythonExe = "python"
     )
     
     Write-Host "=== VM DEPLOYMENT PROCESS ===" -ForegroundColor Cyan
@@ -81,8 +84,8 @@ function Invoke-InteractiveDeployment {
     Write-Host "Connecting to Prism Central: $pcIp as $username" -ForegroundColor Cyan
     
     # Execute resource selection
-    $resourceSelectionArgs = @($pcIp, $username)
-    $process = Start-Process -FilePath "python" -ArgumentList ("deploy_win_vm.py", $resourceSelectionArgs) -Wait -PassThru -NoNewWindow
+    $resourceSelectionArgs = @("deploy_win_vm.py", $pcIp, $username)
+    $process = Start-Process -FilePath $PythonExe -ArgumentList $resourceSelectionArgs -Wait -PassThru -NoNewWindow
     
     if ($process.ExitCode -ne 0) {
         throw "Resource selection failed with exit code: $($process.ExitCode)"
@@ -114,12 +117,12 @@ y
 
 "@
     
+    # Write inputs to temp file first
+    $deploymentInputs | Set-Content "$env:TEMP\deployment_input.txt"
+    
     # Execute VM deployment
     Write-Host "Deploying VM: $vmName" -ForegroundColor Cyan
-    $deployProcess = Start-Process -FilePath "python" -ArgumentList "deploy_win_vm.py", "--deploy" -Wait -PassThru -NoNewWindow -RedirectStandardInput "$env:TEMP\deployment_input.txt"
-    
-    # Write inputs to temp file
-    $deploymentInputs | Set-Content "$env:TEMP\deployment_input.txt"
+    $deployProcess = Start-Process -FilePath $PythonExe -ArgumentList "deploy_win_vm.py", "--deploy" -Wait -PassThru -NoNewWindow -RedirectStandardInput "$env:TEMP\deployment_input.txt"
     
     if ($deployProcess.ExitCode -eq 0) {
         # Parse deployment results
@@ -261,6 +264,3 @@ function Wait-ForVMDeployment {
     Write-Host "Deployment monitoring completed" -ForegroundColor Green
     return $true
 }
-
-# Export the main function
-Export-ModuleMember -Function Invoke-VMDeploymentProcess
