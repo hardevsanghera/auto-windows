@@ -1,0 +1,33 @@
+{
+  "prismCentral": {
+    "ip": "10.1.1.100",
+    "username": "admin",
+    "password": "",
+    "port": 9440
+  },
+  "vmConfiguration": {
+    "namePrefix": "WIN-AUTO-",
+    "adminPassword": "",
+    "domain": {
+      "join": false,
+      "name": "",
+      "username": "",
+      "password": ""
+    }
+  },
+  "deployment": {
+    "mode": "interactive",
+    "autoSelectResources": false,
+    "selectedResources": {
+      "cluster": "",
+      "subnet": "",
+      "image": "",
+      "sysprepFile": ""
+    }
+  },
+  "monitoring": {
+    "checkInterval": 30,
+    "maxWaitTime": 1800,
+    "enableNotifications": false
+  }
+}

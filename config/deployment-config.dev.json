@@ -1,0 +1,33 @@
+{
+  "prismCentral": {
+    "ip": "192.168.1.100",
+    "username": "admin",
+    "password": "",
+    "port": 9440
+  },
+  "vmConfiguration": {
+    "namePrefix": "DEV-WIN-",
+    "adminPassword": "",
+    "domain": {
+      "join": true,
+      "name": "dev.company.com",
+      "username": "domain-admin",
+      "password": ""
+    }
+  },
+  "deployment": {
+    "mode": "interactive",
+    "autoSelectResources": false,
+    "selectedResources": {
+      "cluster": "DEV-Cluster-01",
+      "subnet": "Development-Network", 
+      "image": "Windows-Server-2022-Dev",
+      "sysprepFile": "sysprep-win2022-dev.xml"
+    }
+  },
+  "monitoring": {
+    "checkInterval": 60,
+    "maxWaitTime": 3600,
+    "enableNotifications": true
+  }
+}

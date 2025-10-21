@@ -1,0 +1,43 @@
+{
+  "environment": {
+    "installPath": "C:\\Dev\\ntnx-v4api-cats",
+    "skipGitClone": false,
+    "forceReinstall": false
+  },
+  "components": {
+    "powershell7": {
+      "install": true,
+      "required": true
+    },
+    "python": {
+      "install": true,
+      "version": "3.13+",
+      "required": true
+    },
+    "vscode": {
+      "install": true,
+      "configureWorkspace": true,
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.powershell",
+        "redhat.vscode-yaml",
+        "donjayamanne.githistory",
+        "eamodio.gitlens"
+      ]
+    },
+    "git": {
+      "install": true,
+      "required": true
+    }
+  },
+  "postInstall": {
+    "openVSCode": true,
+    "activateEnvironment": true,
+    "runSampleScript": false
+  },
+  "validation": {
+    "testConnections": true,
+    "verifyInstallations": true,
+    "generateReport": true
+  }
+}

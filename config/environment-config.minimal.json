@@ -1,0 +1,37 @@
+{
+  "environment": {
+    "installPath": "C:\\Tools\\ntnx-api",
+    "skipGitClone": false,
+    "forceReinstall": false
+  },
+  "components": {
+    "powershell7": {
+      "install": false,
+      "required": false
+    },
+    "python": {
+      "install": true,
+      "version": "3.13+", 
+      "required": true
+    },
+    "vscode": {
+      "install": false,
+      "configureWorkspace": false,
+      "extensions": []
+    },
+    "git": {
+      "install": true,
+      "required": true
+    }
+  },
+  "postInstall": {
+    "openVSCode": false,
+    "activateEnvironment": false,
+    "runSampleScript": false
+  },
+  "validation": {
+    "testConnections": false,
+    "verifyInstallations": true,
+    "generateReport": true
+  }
+}

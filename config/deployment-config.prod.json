@@ -1,0 +1,33 @@
+{
+  "prismCentral": {
+    "ip": "10.1.1.100",
+    "username": "prod-admin",
+    "password": "",
+    "port": 9440
+  },
+  "vmConfiguration": {
+    "namePrefix": "PROD-WIN-",
+    "adminPassword": "",
+    "domain": {
+      "join": true,
+      "name": "prod.company.com",
+      "username": "prod-domain-admin",
+      "password": ""
+    }
+  },
+  "deployment": {
+    "mode": "automated",
+    "autoSelectResources": true,
+    "selectedResources": {
+      "cluster": "Production-Cluster-01",
+      "subnet": "Production-Network",
+      "image": "Windows-Server-2022-Prod",
+      "sysprepFile": "sysprep-win2022-prod.xml"
+    }
+  },
+  "monitoring": {
+    "checkInterval": 30,
+    "maxWaitTime": 1800,
+    "enableNotifications": true
+  }
+}

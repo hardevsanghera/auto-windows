@@ -1,0 +1,31 @@
+{
+  "global": {
+    "workingDirectory": "temp",
+    "logDirectory": "logs",
+    "maxLogAgeDays": 30
+  },
+  "repositories": {
+    "vmDeployment": {
+      "url": "https://github.com/hardevsanghera/deploy_win_vm_v1.git",
+      "localPath": "temp/deploy_win_vm_v1",
+      "branch": "main"
+    },
+    "apiEnvironment": {
+      "url": "https://github.com/hardevsanghera/ntnx-v4api-cats.git",
+      "scriptUrl": "https://raw.githubusercontent.com/hardevsanghera/ntnx-v4api-cats/main/experimental/Install-NtnxV4ApiEnvironment.ps1",
+      "localPath": "temp/ntnx-v4api-cats"
+    }
+  },
+  "execution": {
+    "autoMode": false,
+    "phase1": {
+      "enabled": true,
+      "skipIfVMExists": false
+    },
+    "phase2": {
+      "enabled": true,
+      "runOnNewVM": true,
+      "installLocation": "C:\\Dev\\ntnx-v4api-cats"
+    }
+  }
+}
