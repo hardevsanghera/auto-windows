@@ -14,7 +14,7 @@
     Credentials for the VM (if not provided, will use cached credentials)
 
 .PARAMETER UseHTTPS
-    Use HTTPS PowerShell remoting instead of HTTP
+    Use HTTPS PowerShell remoting (default: true). Use -UseHTTPS:$false to force HTTP
 
 .PARAMETER RepositoryURL
     URL of the repository to clone (defaults to ntnx-v4api-cats)
@@ -27,6 +27,9 @@
 
 .EXAMPLE
     .\Setup-Phase2-ApiEnvironment.ps1 -VMIPAddress 10.38.19.22 -UseHTTPS
+
+.EXAMPLE
+    .\Setup-Phase2-ApiEnvironment.ps1 -VMIPAddress 10.38.19.22 -UseHTTPS:$false
 #>
 
 param(
@@ -37,7 +40,7 @@ param(
     [System.Management.Automation.PSCredential]$VMCredential,
     
     [Parameter(Mandatory = $false)]
-    [switch]$UseHTTPS,
+    [bool]$UseHTTPS = $true,
     
     [Parameter(Mandatory = $false)]
     [string]$RepositoryURL = "https://github.com/hardevsanghera/ntnx-v4api-cats.git"
@@ -103,7 +106,7 @@ function Test-VMConnectivity {
     Write-Host "`n🔍 Testing VM Connectivity..." -ForegroundColor Cyan
     
     try {
-        $sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck
+        $sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
         $connectionParams = @{
             ComputerName = $IPAddress
             Credential = $Credential
@@ -114,7 +117,7 @@ function Test-VMConnectivity {
         if ($UseHTTPS) {
             $connectionParams.Port = 5986
             $connectionParams.UseSSL = $true
-            Write-Host "   Attempting HTTPS connection (port 5986)..." -ForegroundColor Gray
+            Write-Host "   Attempting HTTPS connection (port 5986) with certificate bypass..." -ForegroundColor Gray
         } else {
             $connectionParams.Port = 5985
             Write-Host "   Attempting HTTP connection (port 5985)..." -ForegroundColor Gray
@@ -519,7 +522,7 @@ function Install-ApiEnvironment {
 Write-PhaseHeader "PHASE 2: NUTANIX V4 API DEVELOPMENT ENVIRONMENT SETUP"
 Write-Host "Target VM: $VMIPAddress" -ForegroundColor White
 Write-Host "Repository: $RepositoryURL" -ForegroundColor White
-Write-Host "Connection: $(if($UseHTTPS){'HTTPS (Port 5986)'}else{'HTTP (Port 5985)'})" -ForegroundColor White
+Write-Host "Connection: $(if($UseHTTPS){'HTTPS (Port 5986) - SSL Certificate Bypass Enabled'}else{'HTTP (Port 5985)'})" -ForegroundColor White
 
 # Get credentials if not provided
 if (-not $VMCredential) {
@@ -541,7 +544,7 @@ if (-not $connectivityTest) {
 try {
     Write-Host "`n🔗 Establishing PowerShell session..." -ForegroundColor Cyan
     
-    $sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck
+    $sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
     $sessionParams = @{
         ComputerName = $VMIPAddress
         Credential = $VMCredential
@@ -552,8 +555,10 @@ try {
     if ($UseHTTPS) {
         $sessionParams.Port = 5986
         $sessionParams.UseSSL = $true
+        Write-Host "   Using HTTPS connection (port 5986) with SSL certificate bypass..." -ForegroundColor Gray
     } else {
         $sessionParams.Port = 5985
+        Write-Host "   Using HTTP connection (port 5985)..." -ForegroundColor Gray
     }
     
     $session = New-PSSession @sessionParams
