@@ -137,6 +137,131 @@ function Add-ToTrustedHosts {
     }
 }
 
+function Enable-RemoteWinRMHTTPS {
+    param(
+        [object]$Session,
+        [string]$IPAddress,
+        [System.Management.Automation.PSCredential]$Credential
+    )
+    
+    Write-Host "   Configuring WinRM HTTPS listener and firewall on remote VM..." -ForegroundColor Gray
+    
+    try {
+        $configResult = Invoke-Command -Session $Session -ScriptBlock {
+            $results = @{
+                CertificateCreated = $false
+                ListenerConfigured = $false
+                FirewallConfigured = $false
+                CertificateThumbprint = ""
+                Error = ""
+            }
+            
+            try {
+                # Create self-signed certificate for HTTPS
+                Write-Output "Creating self-signed certificate for WinRM HTTPS..."
+                $cert = New-SelfSignedCertificate -DnsName $env:COMPUTERNAME -CertStoreLocation "Cert:\LocalMachine\My" -ErrorAction Stop
+                $results.CertificateCreated = $true
+                $results.CertificateThumbprint = $cert.Thumbprint
+                Write-Output "Certificate created with thumbprint: $($cert.Thumbprint)"
+                
+                # Remove existing HTTPS listener if present
+                try {
+                    $existingListener = Get-WSManInstance -ResourceURI winrm/config/listener -SelectorSet @{Transport="HTTPS"; Address="*"} -ErrorAction Stop
+                    if ($existingListener) {
+                        Remove-WSManInstance -ResourceURI winrm/config/listener -SelectorSet @{Transport="HTTPS"; Address="*"} -ErrorAction Stop
+                        Write-Output "Removed existing HTTPS listener"
+                    }
+                } catch {
+                    Write-Output "No existing HTTPS listener found (this is normal)"
+                }
+                
+                # Create new HTTPS listener
+                Write-Output "Creating WinRM HTTPS listener..."
+                $listenerParams = @{
+                    ResourceURI = "winrm/config/listener"
+                    SelectorSet = @{Transport="HTTPS"; Address="*"}
+                    ValueSet = @{
+                        Hostname = $env:COMPUTERNAME
+                        CertificateThumbprint = $cert.Thumbprint
+                        Port = 5986
+                    }
+                }
+                
+                New-WSManInstance @listenerParams -ErrorAction Stop | Out-Null
+                $results.ListenerConfigured = $true
+                Write-Output "WinRM HTTPS listener configured successfully"
+                
+                # Configure firewall rules for WinRM HTTPS
+                Write-Output "Configuring Windows Firewall for WinRM HTTPS..."
+                
+                # Remove existing rule if it exists
+                try {
+                    Remove-NetFirewallRule -DisplayName "WinRM HTTPS" -ErrorAction SilentlyContinue
+                } catch {
+                    # Rule doesn't exist, continue
+                }
+                
+                # Create new firewall rule for all profiles (Domain, Private, Public)
+                New-NetFirewallRule -DisplayName "WinRM HTTPS" -Direction Inbound -Protocol TCP -LocalPort 5986 -Action Allow -Profile Domain,Private,Public -ErrorAction Stop | Out-Null
+                $results.FirewallConfigured = $true
+                Write-Output "Firewall rule created for WinRM HTTPS (port 5986) - All profiles"
+                
+                # Verify the configuration
+                $listeners = winrm enumerate winrm/config/listener | Where-Object { $_ -like "*Transport = HTTPS*" }
+                if ($listeners) {
+                    Write-Output "Verification: HTTPS listener is active"
+                } else {
+                    $results.Error += "Verification failed: HTTPS listener not found after configuration; "
+                }
+                
+                # Test if the port is now listening
+                $portTest = Test-NetConnection -ComputerName "127.0.0.1" -Port 5986 -WarningAction SilentlyContinue
+                if ($portTest.TcpTestSucceeded) {
+                    Write-Output "Verification: Port 5986 is now listening locally"
+                } else {
+                    $results.Error += "Verification failed: Port 5986 is not listening after configuration; "
+                }
+                
+            } catch {
+                $results.Error = "Configuration failed: $($_.Exception.Message)"
+                Write-Output "Error during configuration: $($_.Exception.Message)"
+            }
+            
+            return $results
+        }
+        
+        # Process the results
+        if ($configResult.CertificateCreated) {
+            Write-TestResult "SSL Certificate Creation" $true "Certificate: $($configResult.CertificateThumbprint)"
+        } else {
+            Write-TestResult "SSL Certificate Creation" $false "" "Failed to create self-signed certificate"
+        }
+        
+        if ($configResult.ListenerConfigured) {
+            Write-TestResult "WinRM HTTPS Listener" $true "Configured on port 5986"
+        } else {
+            Write-TestResult "WinRM HTTPS Listener" $false "" "Failed to configure HTTPS listener"
+        }
+        
+        if ($configResult.FirewallConfigured) {
+            Write-TestResult "Firewall Configuration" $true "Port 5986 opened for all profiles"
+        } else {
+            Write-TestResult "Firewall Configuration" $false "" "Failed to configure firewall rule"
+        }
+        
+        if ($configResult.Error) {
+            Write-Host "    Configuration errors: $($configResult.Error)" -ForegroundColor Red
+        }
+        
+        # Return success if all major components were configured
+        return ($configResult.CertificateCreated -and $configResult.ListenerConfigured -and $configResult.FirewallConfigured)
+        
+    } catch {
+        Write-TestResult "WinRM HTTPS Configuration" $false "" "Failed to execute configuration: $($_.Exception.Message)"
+        return $false
+    }
+}
+
 function Test-NetworkConnectivity {
     param([string]$IPAddress)
     
@@ -248,6 +373,53 @@ function Test-PowerShellRemoting {
             
         } catch {
             Write-TestResult "PowerShell Session Creation (HTTPS)" $false "HTTPS not available: $($_.Exception.Message)" "Configure HTTPS listener with Enable-RemoteWinRMHTTPS.ps1"
+            
+            # Ask user if they want to configure WinRM HTTPS
+            Write-Host "`n💡 WinRM HTTPS is not configured on the target VM." -ForegroundColor Yellow
+            $configureHTTPS = Read-Host "Would you like to automatically configure WinRM HTTPS (port 5986) on the remote VM? (y/N)"
+            
+            if ($configureHTTPS -match '^[Yy]') {
+                Write-Host "`n🔧 Configuring WinRM HTTPS on remote VM..." -ForegroundColor Cyan
+                
+                # Create a new session for configuration since we closed the previous one
+                $configSession = New-PSSession -ComputerName $IPAddress -Port 5985 -Credential $Credential -SessionOption $sessionOptions -ErrorAction SilentlyContinue
+                
+                if ($configSession) {
+                    $httpsConfigResult = Enable-RemoteWinRMHTTPS -Session $configSession -IPAddress $IPAddress -Credential $Credential
+                    Remove-PSSession -Session $configSession
+                    
+                    if ($httpsConfigResult) {
+                        Write-Host "`n🔄 Retesting HTTPS connection after configuration..." -ForegroundColor Cyan
+                        Start-Sleep -Seconds 3
+                        
+                        try {
+                            $httpsSession = New-PSSession -ComputerName $IPAddress -Port 5986 -UseSSL -Credential $Credential -SessionOption $sessionOptions -ErrorAction Stop
+                            Write-TestResult "PowerShell Session Creation (HTTPS) - Retry" $true "Successfully created secure session after configuration"
+                            
+                            # Test HTTPS command execution
+                            $httpsInfo = Invoke-Command -Session $httpsSession -ScriptBlock {
+                                [PSCustomObject]@{
+                                    SecureConnection = $true
+                                    TLSVersion = [System.Net.ServicePointManager]::SecurityProtocol.ToString()
+                                    EncryptedSession = $true
+                                }
+                            }
+                            
+                            Write-TestResult "Secure Connection Verification - Retry" $httpsInfo.SecureConnection "TLS Protocol: $($httpsInfo.TLSVersion)"
+                            Remove-PSSession -Session $httpsSession
+                            
+                        } catch {
+                            Write-TestResult "PowerShell Session Creation (HTTPS) - Retry" $false "HTTPS still not working: $($_.Exception.Message)" "Manual configuration may be required"
+                        }
+                    } else {
+                        Write-Host "❌ Failed to configure WinRM HTTPS automatically." -ForegroundColor Red
+                    }
+                } else {
+                    Write-Host "❌ Could not create session for HTTPS configuration." -ForegroundColor Red
+                }
+            } else {
+                Write-Host "   Skipping WinRM HTTPS configuration." -ForegroundColor Gray
+            }
         }
         
         return $true

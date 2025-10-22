@@ -1,7 +1,7 @@
 {
   "environment": {
     "skipGitClone": false,
-    "installPath": "C:\\Dev\\ntnx-v4api-cats",
+    "installPath": "C:\\Users\\Administrator\\Documents\\ntnx-v4api-cats",
     "forceReinstall": false
   },
   "postInstall": {

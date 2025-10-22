@@ -497,3 +497,66 @@
 [2025-10-21 19:21:10] [SUCCESS] Task UUID: 6128f17e-6ba8-4514-b853-e8e83b3357ac
 [2025-10-21 19:21:10] [SUCCESS] Phase 1 results saved to: C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp\phase1-results.json
 [2025-10-21 19:21:10] [SUCCESS] Phase 1 completed successfully. Ready for Phase 2.
+[2025-10-21 21:51:30] [SUCCESS] === PHASE 1 INITIALIZATION ===
+[2025-10-21 21:51:30] [INFO] Checking Phase 1 prerequisites...
+[2025-10-21 21:51:30] [SUCCESS] Python found: Python 3.13.9
+[2025-10-21 21:51:30] [SUCCESS] Git found: git version 2.51.0.windows.2
+[2025-10-21 21:51:30] [SUCCESS] Internet connectivity verified
+[2025-10-21 21:51:30] [INFO] Reading deployment configuration from: config\deployment-config.json
+[2025-10-21 21:51:30] [SUCCESS] Configuration loaded successfully
+[2025-10-21 21:51:30] [SUCCESS] === STARTING PHASE 1: VM DEPLOYMENT ===
+[2025-10-21 21:51:30] [INFO] Initializing working directory: C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-21 21:51:30] [INFO] Cloning VM deployment repository...
+[2025-10-21 21:51:32] [INFO] Setting up Python environment for VM deployment...
+[2025-10-21 21:51:33] [SUCCESS] Found Python: Python 3.13.9 at C:\Users\hardev.sanghera\AppData\Local\Programs\Python\Python313\python.exe
+[2025-10-21 21:51:39] [INFO] Starting VM deployment process...
+[2025-10-21 21:52:18] [SUCCESS] Phase 1 completed successfully!
+[2025-10-21 21:52:18] [SUCCESS] VM UUID: fb059d3b-609e-45b6-9fe3-03b0df44e393
+[2025-10-21 21:52:18] [SUCCESS] Task UUID: 9b569d01-a7d3-4a0d-903a-a8e9a13383f1
+[2025-10-21 21:52:18] [SUCCESS] Phase 1 results saved to: C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp\phase1-results.json
+[2025-10-21 21:52:18] [SUCCESS] Phase 1 completed successfully. Ready for Phase 2.
+[2025-10-22 09:40:12] [SUCCESS] === PHASE 1 INITIALIZATION ===
+[2025-10-22 09:40:12] [INFO] Checking Phase 1 prerequisites...
+[2025-10-22 09:40:13] [SUCCESS] Python found: Python 3.13.9
+[2025-10-22 09:40:13] [SUCCESS] Git found: git version 2.51.0.windows.2
+[2025-10-22 09:40:13] [SUCCESS] Internet connectivity verified
+[2025-10-22 09:40:13] [INFO] Reading deployment configuration from: config\deployment-config.json
+[2025-10-22 09:40:13] [SUCCESS] Configuration loaded successfully
+[2025-10-22 09:40:13] [SUCCESS] === STARTING PHASE 1: VM DEPLOYMENT ===
+[2025-10-22 09:40:13] [INFO] Initializing working directory: C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-22 09:40:13] [INFO] Cloning VM deployment repository...
+[2025-10-22 09:40:15] [INFO] Setting up Python environment for VM deployment...
+[2025-10-22 09:40:15] [SUCCESS] Found Python: Python 3.13.9 at C:\Users\hardev.sanghera\AppData\Local\Programs\Python\Python313\python.exe
+[2025-10-22 09:40:23] [INFO] Starting VM deployment process...
+[2025-10-22 09:42:48] [SUCCESS] === PHASE 1 INITIALIZATION ===
+[2025-10-22 09:42:48] [INFO] Checking Phase 1 prerequisites...
+[2025-10-22 09:42:48] [SUCCESS] Python found: Python 3.13.9
+[2025-10-22 09:42:49] [SUCCESS] Git found: git version 2.51.0.windows.2
+[2025-10-22 09:42:49] [SUCCESS] Internet connectivity verified
+[2025-10-22 09:42:49] [INFO] Reading deployment configuration from: config\deployment-config.json
+[2025-10-22 09:42:49] [SUCCESS] Configuration loaded successfully
+[2025-10-22 09:42:49] [SUCCESS] === STARTING PHASE 1: VM DEPLOYMENT ===
+[2025-10-22 09:42:49] [INFO] Initializing working directory: C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-22 09:42:49] [INFO] Cloning VM deployment repository...
+[2025-10-22 09:42:51] [INFO] Setting up Python environment for VM deployment...
+[2025-10-22 09:42:51] [SUCCESS] Found Python: Python 3.13.9 at C:\Users\hardev.sanghera\AppData\Local\Programs\Python\Python313\python.exe
+[2025-10-22 09:42:56] [INFO] Starting VM deployment process...
+[2025-10-22 09:43:03] [ERROR] Phase 1 failed: VM deployment failed: Resource selection failed with exit code: -1073741510
+[2025-10-22 09:46:58] [SUCCESS] === PHASE 1 INITIALIZATION ===
+[2025-10-22 09:46:58] [INFO] Checking Phase 1 prerequisites...
+[2025-10-22 09:46:59] [SUCCESS] Python found: Python 3.13.9
+[2025-10-22 09:46:59] [SUCCESS] Git found: git version 2.51.0.windows.2
+[2025-10-22 09:46:59] [SUCCESS] Internet connectivity verified
+[2025-10-22 09:46:59] [INFO] Reading deployment configuration from: config\deployment-config.json
+[2025-10-22 09:46:59] [SUCCESS] Configuration loaded successfully
+[2025-10-22 09:46:59] [SUCCESS] === STARTING PHASE 1: VM DEPLOYMENT ===
+[2025-10-22 09:46:59] [INFO] Initializing working directory: C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-22 09:46:59] [INFO] Cloning VM deployment repository...
+[2025-10-22 09:47:01] [INFO] Setting up Python environment for VM deployment...
+[2025-10-22 09:47:01] [SUCCESS] Found Python: Python 3.13.9 at C:\Users\hardev.sanghera\AppData\Local\Programs\Python\Python313\python.exe
+[2025-10-22 09:47:07] [INFO] Starting VM deployment process...
+[2025-10-22 09:48:43] [SUCCESS] Phase 1 completed successfully!
+[2025-10-22 09:48:43] [SUCCESS] VM UUID: 456d6f36-e3b4-4cb6-a64c-b8184277d64b
+[2025-10-22 09:48:43] [SUCCESS] Task UUID: c99bc9e5-34d0-4e10-b4b2-6bd5c67ac36d
+[2025-10-22 09:48:43] [SUCCESS] Phase 1 results saved to: C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp\phase1-results.json
+[2025-10-22 09:48:43] [SUCCESS] Phase 1 completed successfully. Ready for Phase 2.

@@ -1289,3 +1289,143 @@ Troubleshooting:
 4. Run individual phases to isolate issues
 [2025-10-21 20:20:03] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
 [2025-10-21 20:20:03] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: Phase 2 execution failed with exit code: 1
+[2025-10-21 21:51:24] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 21:51:24] [INFO] [MAIN] Phase selection: 1
+[2025-10-21 21:51:24] [DEBUG] [MAIN] Script root: 
+[2025-10-21 21:51:24] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 21:51:25] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 21:51:25] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 21:51:25] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 21:51:25] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 21:51:25] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 21:51:25] [SUCCESS] [MAIN] Disk space check passed: 30.84GB available
+[2025-10-21 21:51:25] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 21:51:25] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 21:51:25] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-21 21:51:30] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-21 21:51:30] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-21 21:51:30] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-21 21:51:30] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-21 21:51:30] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-21 21:52:18] [SUCCESS] [MAIN] Phase 1 completed successfully!
+[2025-10-21 21:52:18] [SUCCESS] [MAIN] VM UUID: fb059d3b-609e-45b6-9fe3-03b0df44e393
+[2025-10-21 21:52:18] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 21:51:24
+End Time: 2025-10-21 21:52:18
+Duration: 00:00:53
+
+Phase Results:
+Phase 1 (VM Deployment): SUCCESS ✓
+  VM Name: HARDEV-1021
+  VM UUID: fb059d3b-609e-45b6-9fe3-03b0df44e393
+  Task UUID: 9b569d01-a7d3-4a0d-903a-a8e9a13383f1
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: SUCCESS ✓
+Next Steps:
+1. Configure Nutanix Prism Central details in the API environment
+2. Use VS Code to develop and test API scripts
+3. Follow the documentation for detailed usage instructions
+
+Documentation: https://github.com/hardevsanghera/ntnx-v4api-cats
+[2025-10-21 21:52:18] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 21:52:18] [SUCCESS] [MAIN] Auto-Windows deployment completed successfully!
+[2025-10-22 09:40:07] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-22 09:40:07] [INFO] [MAIN] Phase selection: 1
+[2025-10-22 09:40:07] [DEBUG] [MAIN] Script root: 
+[2025-10-22 09:40:07] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-22 09:40:07] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-22 09:40:07] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-22 09:40:07] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-22 09:40:07] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-22 09:40:08] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-22 09:40:08] [SUCCESS] [MAIN] Disk space check passed: 30.67GB available
+[2025-10-22 09:40:08] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-22 09:40:08] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-22 09:40:08] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-22 09:40:12] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-22 09:40:12] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-22 09:40:12] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-22 09:40:12] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-22 09:40:12] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-22 09:42:43] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-22 09:42:43] [INFO] [MAIN] Phase selection: 1
+[2025-10-22 09:42:43] [DEBUG] [MAIN] Script root: 
+[2025-10-22 09:42:43] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-22 09:42:43] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-22 09:42:43] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-22 09:42:43] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-22 09:42:43] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-22 09:42:44] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-22 09:42:44] [SUCCESS] [MAIN] Disk space check passed: 30.77GB available
+[2025-10-22 09:42:44] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-22 09:42:44] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-22 09:42:44] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-22 09:42:48] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-22 09:42:48] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-22 09:42:48] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-22 09:42:48] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-22 09:42:48] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-22 09:43:03] [ERROR] [MAIN] Phase 1 failed: VM deployment failed: Resource selection failed with exit code: -1073741510
+[2025-10-22 09:43:03] [ERROR] [MAIN] Auto-Windows deployment failed: VM deployment failed: Resource selection failed with exit code: -1073741510
+[2025-10-22 09:43:04] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-22 09:42:43
+End Time: 2025-10-22 09:43:03
+Duration: 00:00:20
+
+Phase Results:
+Phase 1 (VM Deployment): FAILED ✗
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues
+[2025-10-22 09:43:04] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-22 09:43:04] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: VM deployment failed: Resource selection failed with exit code: -1073741510
+[2025-10-22 09:46:55] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-22 09:46:55] [INFO] [MAIN] Phase selection: 1
+[2025-10-22 09:46:55] [DEBUG] [MAIN] Script root: 
+[2025-10-22 09:46:55] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-22 09:46:55] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-22 09:46:55] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-22 09:46:55] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-22 09:46:55] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-22 09:46:55] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-22 09:46:55] [SUCCESS] [MAIN] Disk space check passed: 30.76GB available
+[2025-10-22 09:46:55] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-22 09:46:55] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-22 09:46:55] [INFO] [MAIN] Execution plan: Phase1=True, Phase2=False
+[2025-10-22 09:46:58] [INFO] [MAIN] Starting Phase 1 execution with parameters:
+[2025-10-22 09:46:58] [DEBUG] [MAIN]   ConfigPath = config\deployment-config.json
+[2025-10-22 09:46:58] [DEBUG] [MAIN]   LogPath = logs\phase1.log
+[2025-10-22 09:46:58] [DEBUG] [MAIN]   WorkingDirectory = C:\Users\hardev.sanghera\Documents\v3\auto-windows\temp
+[2025-10-22 09:46:58] [INFO] [MAIN] Executing Phase 1 script...
+[2025-10-22 09:48:43] [SUCCESS] [MAIN] Phase 1 completed successfully!
+[2025-10-22 09:48:43] [SUCCESS] [MAIN] VM UUID: 456d6f36-e3b4-4cb6-a64c-b8184277d64b
+[2025-10-22 09:48:43] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-22 09:46:55
+End Time: 2025-10-22 09:48:43
+Duration: 00:01:48
+
+Phase Results:
+Phase 1 (VM Deployment): SUCCESS ✓
+  VM Name: HARDEV-VM1022
+  VM UUID: 456d6f36-e3b4-4cb6-a64c-b8184277d64b
+  Task UUID: c99bc9e5-34d0-4e10-b4b2-6bd5c67ac36d
+Phase 2 (API Environment): SKIPPED
+
+Overall Status: SUCCESS ✓
+Next Steps:
+1. Configure Nutanix Prism Central details in the API environment
+2. Use VS Code to develop and test API scripts
+3. Follow the documentation for detailed usage instructions
+
+Documentation: https://github.com/hardevsanghera/ntnx-v4api-cats
+[2025-10-22 09:48:43] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-22 09:48:43] [SUCCESS] [MAIN] Auto-Windows deployment completed successfully!

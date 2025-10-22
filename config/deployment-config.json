@@ -1,6 +1,6 @@
 {
   "vmConfiguration": {
-    "namePrefix": "HARDEV-",
+    "namePrefix": "HARDEV-VM",
     "adminPassword": "",
     "domain": {
       "password": "",
@@ -13,7 +13,7 @@
     "password": "",
     "username": "admin",
     "port": 9440,
-    "ip": "10.38.19.9"
+    "ip": "10.38.12.201"
   },
   "deployment": {
     "mode": "interactive",
