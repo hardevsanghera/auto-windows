@@ -327,7 +327,7 @@ function Clone-ApiRepository {
         
         try {
             # Set working directory
-            $workingDir = "C:\temp\ntnx-api-dev"
+            $workingDir = "C:\Users\Administrator\Documents"
             New-Item -Path $workingDir -ItemType Directory -Force | Out-Null
             Set-Location -Path $workingDir
             
