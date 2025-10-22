@@ -1,7 +1,12 @@
 # Temporary directories and files
 temp/
+logs/
 *.tmp
-*.log
+
+# Auto-Windows generated files
+phase1_results.json
+vm-details.json
+execution-summary.txt
 
 # Python virtual environments
 venv/
@@ -23,5 +28,10 @@ Desktop.ini
 # PowerShell execution logs
 *.log
 
-# VM deployment artifacts
-vm-details.json
+# External repositories (downloaded during execution)
+deploy_win_vm_v1/
+ntnx-v4api-cats/
+
+# Configuration files with sensitive data (users should copy from templates)
+config/deployment-config.json
+config/environment-config.json

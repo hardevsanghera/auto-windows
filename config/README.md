@@ -1,29 +1,47 @@
 # Auto-Windows Configuration Guide
 
-This directory contains configuration files and templates for Auto-Windows deployment scenarios with enhanced automation features.
+This directory contains configuration templates for Auto-Windows deployment scenarios with enhanced automation features.
 
 ## 📁 Configuration Files
 
-### settings.json
+**Note:** Working configuration files (`settings.json`, `deployment-config.json`, `environment-config.json`) are automatically created by the scripts and are not included in the repository for security reasons.
+
+### Auto-Generated Working Files (Created During Execution)
+
+#### settings.json
 Global settings for the Auto-Windows deployment process:
 - Repository URLs and local paths
 - Execution preferences and automation settings
 - Logging configuration and retention
 - Default timeouts and retry parameters
 
-### deployment-config.json  
+#### deployment-config.json  
 VM deployment configuration for Phase 1:
 - Prism Central connection details (IP, port, credentials)
 - VM specifications and naming conventions
 - Network and cluster preferences
 - Deployment monitoring and validation settings
 
-### environment-config.json
+#### environment-config.json
 API environment setup configuration for Phase 2:
 - Component installation preferences (PowerShell, Python, VS Code, Git)
 - Installation paths and directory structure
 - HTTPS/SSL configuration for secure connections
 - Post-installation tasks and validation settings
+
+### Configuration Templates (Included in Repository)
+
+#### deployment-config.dev.json & deployment-config.prod.json
+Example configurations for development and production environments:
+- Pre-configured settings for different use cases
+- Template values for common scenarios
+- Copy these to create custom configurations
+
+#### environment-config.full.json & environment-config.minimal.json
+Installation templates for different component sets:
+- **Full**: All components (PowerShell 7, Python, VS Code, Git, extensions)
+- **Minimal**: Essential components only
+- Template for custom component selection
 
 ## 🚀 Usage Examples
 
