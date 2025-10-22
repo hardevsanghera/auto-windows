@@ -350,22 +350,27 @@ function Invoke-Phase2 {
         if ($Phase1Results -and $Phase1Results.VMIPAddress) {
             $vmIPAddress = $Phase1Results.VMIPAddress
             Write-Log "Using VM IP from Phase 1 results: $vmIPAddress" -Level "INFO"
+        } elseif ($Phase1Results -and $Phase1Results.VMUUID) {
+            # Phase 1 completed but no IP yet - wait and discover it
+            Write-Log "Phase 1 completed. Waiting for VM to get IP address..." -Level "INFO"
+            $vmIPAddress = Wait-ForVMIPAddress -VMUUID $Phase1Results.VMUUID -VMName $Phase1Results.VMName
         } else {
-            # Try to get IP from the Get-VMIPAddress script
+            # Try to get IP from the Get-VMIPAddress script for standalone Phase 2
             Write-Log "Attempting to discover VM IP address..." -Level "INFO"
             $ipScript = Join-Path $Script:ScriptRoot "Get-VMIPAddress.ps1"
             if (Test-Path $ipScript) {
                 try {
-                    $ipResult = & $ipScript
-                    # The script should output the IP address - we'll need to parse it
-                    # For now, we'll prompt the user
-                    $vmIPAddress = Read-Host "Enter the VM IP address for Phase 2 setup"
+                    $vmIPAddress = Get-VMIPFromScript -ScriptPath $ipScript
                 } catch {
                     Write-Log "Failed to get VM IP automatically: $($_.Exception.Message)" -Level "WARN"
-                    $vmIPAddress = Read-Host "Enter the VM IP address for Phase 2 setup"
+                    if (!$NonInteractive) {
+                        $vmIPAddress = Read-Host "Enter the VM IP address for Phase 2 setup"
+                    }
                 }
             } else {
-                $vmIPAddress = Read-Host "Enter the VM IP address for Phase 2 setup"
+                if (!$NonInteractive) {
+                    $vmIPAddress = Read-Host "Enter the VM IP address for Phase 2 setup"
+                }
             }
         }
         
@@ -424,6 +429,110 @@ function Invoke-Phase2 {
         $Script:ExecutionResults.Phase2.Success = $false
         Write-Log "Phase 2 failed: $($_.Exception.Message)" -Level "ERROR"
         throw
+    }
+}
+
+function Wait-ForVMIPAddress {
+    param(
+        [string]$VMUUID,
+        [string]$VMName,
+        [int]$MaxWaitMinutes = 15,
+        [int]$RetryIntervalSeconds = 30
+    )
+    
+    Write-Log "Waiting for VM to obtain IP address..." -Level "INFO"
+    Write-Log "VM UUID: $VMUUID" -Level "DEBUG"
+    Write-Log "VM Name: $VMName" -Level "DEBUG"
+    Write-Log "Max wait time: $MaxWaitMinutes minutes" -Level "DEBUG"
+    
+    $maxAttempts = [math]::Ceiling($MaxWaitMinutes * 60 / $RetryIntervalSeconds)
+    $attempt = 1
+    
+    do {
+        Write-Log "Attempt $attempt/$maxAttempts - Checking for IP address..." -Level "INFO"
+        
+        try {
+            $ipScript = Join-Path $Script:ScriptRoot "Get-VMIPAddress.ps1"
+            if (Test-Path $ipScript) {
+                # Run the script and capture output
+                $ipResult = & $ipScript -VMUUID $VMUUID -MaxRetries 1 -RetryDelay 5 2>&1
+                
+                # Parse the output for IP address
+                $ipAddress = Parse-IPFromOutput -Output $ipResult
+                
+                if ($ipAddress) {
+                    Write-Log "VM IP address discovered: $ipAddress" -Level "SUCCESS"
+                    return $ipAddress
+                }
+            }
+            
+            Write-Log "IP address not yet available. VM may still be booting..." -Level "INFO"
+            
+            if ($attempt -lt $maxAttempts) {
+                Write-Log "Waiting $RetryIntervalSeconds seconds before next attempt..." -Level "INFO"
+                Start-Sleep -Seconds $RetryIntervalSeconds
+            }
+            
+        } catch {
+            Write-Log "Error during IP discovery attempt: $($_.Exception.Message)" -Level "WARN"
+            if ($attempt -lt $maxAttempts) {
+                Start-Sleep -Seconds $RetryIntervalSeconds
+            }
+        }
+        
+        $attempt++
+        
+    } while ($attempt -le $maxAttempts)
+    
+    Write-Log "Timeout: VM IP address not available after $MaxWaitMinutes minutes" -Level "WARN"
+    Write-Log "This is normal for Windows VMs which can take 10-15 minutes to fully boot" -Level "INFO"
+    
+    if (!$NonInteractive) {
+        $manualIP = Read-Host "Enter the VM IP address manually (or press Enter to continue waiting)"
+        if ($manualIP) {
+            return $manualIP
+        }
+        
+        # Extended wait if user chooses
+        $continueWait = Read-Host "Continue waiting for automatic IP discovery? (Y/n)"
+        if ($continueWait -notmatch "^[Nn]") {
+            return Wait-ForVMIPAddress -VMUUID $VMUUID -VMName $VMName -MaxWaitMinutes 10
+        }
+    }
+    
+    return $null
+}
+
+function Parse-IPFromOutput {
+    param([string[]]$Output)
+    
+    # Look for IP address pattern in output
+    foreach ($line in $Output) {
+        if ($line -match "IP Address: (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
+            return $matches[1]
+        }
+        # Also check for primary IP pattern
+        if ($line -match "Primary IP: (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
+            return $matches[1]
+        }
+    }
+    
+    return $null
+}
+
+function Get-VMIPFromScript {
+    param([string]$ScriptPath)
+    
+    Write-Log "Executing Get-VMIPAddress script..." -Level "INFO"
+    
+    $output = & $ScriptPath 2>&1
+    $ipAddress = Parse-IPFromOutput -Output $output
+    
+    if ($ipAddress) {
+        Write-Log "IP address discovered: $ipAddress" -Level "SUCCESS"
+        return $ipAddress
+    } else {
+        throw "Could not parse IP address from script output"
     }
 }
 

@@ -1,249 +1,265 @@
-# Auto-Windows: Two-Phase VM Deployment and API Environment Setup
+# Auto-Windows: Automated VM Deployment & API Environment Setup
 
-## Overview
+## 🚀 Overview
 
-Auto-Windows provides a complete two-phase automation solution for deploying Windows VMs and setting up Nutanix v4 API development environments. This system combines the power of two external repositories to create a seamless deployment experience.
+Auto-Windows provides a complete **two-phase automation solution** for deploying Windows VMs on Nutanix and setting up comprehensive API development environments. The system seamlessly integrates multiple repositories to deliver end-to-end automation with intelligent IP discovery, secure PowerShell remoting, and comprehensive environment setup.
 
-### What Auto-Windows Does
+### ✨ What Auto-Windows Does
 
-1. **PHASE 1**: Deploy Windows VMs using the [`deploy_win_vm_v1`](https://github.com/hardevsanghera/deploy_win_vm_v1) repository
-2. **PHASE 2**: Set up Nutanix v4 API environment using the [`ntnx-v4api-cats`](https://github.com/hardevsanghera/ntnx-v4api-cats) experimental script
+1. **PHASE 1**: Deploy Windows VMs using [`deploy_win_vm_v1`](https://github.com/hardevsanghera/deploy_win_vm_v1)
+2. **PHASE 2**: Setup Nutanix v4 API environment using [`ntnx-v4api-cats`](https://github.com/hardevsanghera/ntnx-v4api-cats)
 
-## Quick Start (5 minutes)
+### 🎯 Key Features
+
+- **🤖 Full Automation**: Complete end-to-end deployment with minimal user interaction
+- **🔍 Intelligent IP Discovery**: Automatic VM IP detection with configurable waiting/retry logic
+- **🔒 Secure by Default**: HTTPS PowerShell remoting with SSL certificate bypass
+- **⚡ VM Readiness Testing**: Automated connectivity and prerequisite validation
+- **🛠️ WinRM HTTPS Setup**: Interactive configuration of secure remoting on target VMs
+- **📊 Comprehensive Logging**: Detailed execution tracking and error reporting
+- **🔄 Flexible Execution**: Run individual phases or complete workflow
+
+## 🏃‍♂️ Quick Start (5 minutes)
 
 ```powershell
 # 1. Clone and setup
 git clone https://github.com/hardevsanghera/auto-windows.git
 cd auto-windows
 
-# 2. Interactive configuration
-.\Setup-Configuration.ps1 -Action Setup -Interactive
+# 2. Full automated deployment
+.\Deploy-AutoWindows.ps1 -Phase All
 
-# 3. Deploy everything
-.\Deploy-AutoWindows.ps1
+# 3. Or run phases individually
+.\Deploy-AutoWindows.ps1 -Phase 1    # VM deployment only
+.\Deploy-AutoWindows.ps1 -Phase 2    # API environment only
 ```
 
-## Architecture
+## 🏗️ Architecture & Workflow
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Auto-Windows                         │
-├─────────────────────────┬───────────────────────────────┤
-│       PHASE 1           │          PHASE 2              │
-│   VM Deployment         │   API Environment Setup       │
-├─────────────────────────┼───────────────────────────────┤
-│ • Clone deploy_win_vm_v1│ • Download Install script     │
-│ • Setup Python env      │ • Install PowerShell 7        │
-│ • Resource selection    │ • Install Python 3.13+        │
-│ • VM creation           │ • Install VS Code              │
-│ • Sysprep customization │ • Install Git for Windows     │
-│ • Deployment monitoring │ • Setup API repository        │
-└─────────────────────────┴───────────────────────────────┘
+```mermaid
+graph TD
+    A[Deploy-AutoWindows.ps1] --> B[Phase 1: VM Deployment]
+    A --> G[Phase 2: API Environment]
+    
+    B --> C[Clone deploy_win_vm_v1]
+    B --> D[Python Environment Setup]
+    B --> E[VM Creation & Sysprep]
+    E --> F[Save VM UUID/Results]
+    
+    F --> H[IP Discovery & Wait]
+    H --> I[Test VM Readiness]
+    I --> J[Configure WinRM HTTPS]
+    J --> K[Setup API Environment]
+    
+    G --> L[PowerShell 7 + Python 3.13]
+    G --> M[VS Code + Extensions]
+    G --> N[Git + Repository Clone]
+    G --> O[Virtual Environment + Packages]
 ```
 
-## Repository Structure
+## 📁 Repository Structure
 
 ```
 auto-windows/
-├── README.md                        # This file
-├── Deploy-AutoWindows.ps1           # Master orchestration script
-├── Setup-Configuration.ps1          # Configuration helper tool
-├── config/                          # Configuration files
-│   ├── settings.json               # Global settings
-│   ├── deployment-config.json      # VM deployment configuration
-│   ├── environment-config.json     # API environment configuration
-│   ├── deployment-config.dev.json  # Development template
-│   ├── deployment-config.prod.json # Production template
-│   ├── environment-config.full.json # Full installation template
-│   ├── environment-config.minimal.json # Minimal template
-│   └── README.md                   # Configuration documentation
-├── phase1/                         # Phase 1: VM Deployment
-│   ├── Initialize-VMDeployment.ps1 # Main Phase 1 script
-│   ├── Get-ExternalRepo.ps1        # Repository management
-│   └── Invoke-VMDeployment.ps1     # VM deployment wrapper
-├── phase2/                         # Phase 2: API Environment
-│   ├── Initialize-APIEnvironment.ps1 # Main Phase 2 script
-│   └── Install-NtnxEnvironment.ps1   # Environment setup wrapper
-├── docs/                           # Documentation
-│   ├── QUICKSTART.md              # Quick start guide
-│   ├── ADVANCED.md                # Advanced usage
-│   └── EXAMPLES.md                # Usage examples
-├── logs/                          # Execution logs (created during run)
-└── temp/                          # Temporary files (created during run)
+├── README.md                           # This file
+├── Deploy-AutoWindows.ps1              # 🎯 Master orchestration script
+├── Setup-Phase2-ApiEnvironment.ps1     # 🔧 Standalone Phase 2 execution
+├── Test-VMReadiness.ps1                # ✅ VM connectivity & readiness testing
+├── Get-VMIPAddress.ps1                 # 🔍 IP discovery from Prism Central
+├── PasswordManager.ps1                 # 🔐 Secure credential management
+├── config/                             # ⚙️ Configuration files
+│   ├── deployment-config.json          # VM deployment settings
+│   ├── environment-config.json         # API environment settings
+│   └── settings.json                   # Global settings
+├── phase1/                             # 🏗️ VM Deployment components
+│   ├── Initialize-VMDeployment.ps1     # Main Phase 1 orchestrator
+│   ├── Get-ExternalRepo.ps1            # Repository cloning
+│   └── Invoke-VMDeployment.ps1         # VM deployment execution
+├── docs/                              # 📚 Comprehensive documentation
+├── logs/                              # 📋 Execution logs (auto-created)
+└── temp/                              # 🗂️ Temporary files (auto-created)
 ```
 
-## Prerequisites
+## 🔧 Core Scripts & Features
 
-- **Windows OS** (Windows 10/11, Windows Server 2019/2022)
-- **PowerShell 5.1+** (PowerShell 7+ recommended)
-- **Internet connectivity** (to download external repositories)
-- **Nutanix Prism Central access** (for Phase 1 VM deployment)
-- **Administrative privileges** (recommended for Phase 2 installations)
-
-## Configuration Options
-
-Auto-Windows supports multiple configuration approaches:
-
-### Interactive Setup (Recommended for first-time users)
+### `Deploy-AutoWindows.ps1` - Master Orchestrator
 ```powershell
-.\Setup-Configuration.ps1 -Action Setup -Interactive
-```
+# Complete deployment
+.\Deploy-AutoWindows.ps1 -Phase All
 
-### Template-based Setup
-```powershell
-# Development environment
-.\Setup-Configuration.ps1 -Action Setup -ConfigType dev -Interactive
-
-# Production environment  
-.\Setup-Configuration.ps1 -Action Setup -ConfigType prod -Interactive
-
-# Full installation (all components)
-.\Setup-Configuration.ps1 -Action Setup -ConfigType full -Interactive
-
-# Minimal installation (essential components only)
-.\Setup-Configuration.ps1 -Action Setup -ConfigType minimal -Interactive
-```
-
-### Manual Configuration
-Edit configuration files directly:
-- `config/deployment-config.json` - VM deployment settings
-- `config/environment-config.json` - API environment settings
-- `config/settings.json` - Global settings
-
-## Usage Examples
-
-### Complete Deployment
-```powershell
-# Deploy VM and setup API environment
-.\Deploy-AutoWindows.ps1
-```
-
-### Phase-Specific Deployment
-```powershell
-# VM deployment only
+# Individual phases
 .\Deploy-AutoWindows.ps1 -Phase 1
-
-# API environment setup only
 .\Deploy-AutoWindows.ps1 -Phase 2
-```
 
-### Non-Interactive Mode
-```powershell
-# Automated deployment (for CI/CD)
+# Non-interactive mode
 .\Deploy-AutoWindows.ps1 -NonInteractive
 ```
 
-### Custom Configuration
+### `Setup-Phase2-ApiEnvironment.ps1` - Standalone API Setup
 ```powershell
-# Use custom configuration directory
-.\Deploy-AutoWindows.ps1 -ConfigDirectory "my-configs"
+# Secure HTTPS setup (default)
+.\Setup-Phase2-ApiEnvironment.ps1 -VMIPAddress 10.38.19.22
+
+# Force HTTP if needed
+.\Setup-Phase2-ApiEnvironment.ps1 -VMIPAddress 10.38.19.22 -UseHTTPS:$false
 ```
 
-## What Gets Deployed
-
-### Phase 1: Windows VM Deployment
-- **VM Creation**: Deploys Windows VMs to Nutanix AHV clusters
-- **Resource Selection**: Interactive selection of clusters, networks, images
-- **Customization**: Sysprep-based Windows customization
-- **Monitoring**: Deployment progress tracking
-- **Integration**: Uses Nutanix v3.1 REST API via Python
-
-### Phase 2: Nutanix v4 API Environment
-- **PowerShell 7**: Latest PowerShell for cross-platform scripting
-- **Python 3.13+**: Python environment with virtual environment setup
-- **Visual Studio Code**: IDE with Nutanix-specific extensions
-- **Git for Windows**: Version control and repository management
-- **API Repository**: Complete Nutanix v4 API development environment
-- **Documentation**: Ready-to-use API examples and documentation
-
-## Validation and Testing
-
-### Configuration Validation
+### `Test-VMReadiness.ps1` - VM Validation & Setup
 ```powershell
-# Validate configuration before deployment
-.\Setup-Configuration.ps1 -Action Validate
+# Basic connectivity test
+.\Test-VMReadiness.ps1 -VMIPAddress 10.38.19.22
 
-# Test connectivity and settings
-.\Setup-Configuration.ps1 -Action Test
+# Full readiness assessment with TrustedHosts setup
+.\Test-VMReadiness.ps1 -VMIPAddress 10.38.19.22 -AddToTrusted -TestLevel Full
 ```
 
-### Deployment Verification
-- Automatic component validation after installation
-- Connectivity testing to Nutanix Prism Central
-- Environment health checks
-- Comprehensive logging and reporting
-
-## Security Features
-
-- **No Password Storage**: Passwords not stored in configuration files
-- **Secure Input**: Hidden password prompts during interactive setup
-- **Environment Variables**: Support for secure credential management
-- **Audit Logging**: Comprehensive logging for compliance and troubleshooting
-
-## Troubleshooting
-
-### Quick Diagnostics
+### `Get-VMIPAddress.ps1` - Intelligent IP Discovery
 ```powershell
-# Check logs for errors
+# Discover latest deployed VM IP
+.\Get-VMIPAddress.ps1
+
+# Query specific VM
+.\Get-VMIPAddress.ps1 -VMUUID "44fee51f-5424-4752-8b66-e74e1ef317ab"
+```
+
+## 🎯 Advanced Automation Features
+
+### 🔍 Intelligent IP Discovery
+- **Automatic Waiting**: Waits up to 15 minutes for DHCP assignment
+- **Retry Logic**: Checks every 30 seconds with exponential backoff
+- **Output Parsing**: Extracts IP from Prism Central API responses
+- **Fallback Options**: Manual entry or extended waiting periods
+
+### 🔒 Secure PowerShell Remoting
+- **HTTPS by Default**: Uses port 5986 with SSL certificate bypass
+- **Automatic Setup**: Interactive WinRM HTTPS configuration on target VMs
+- **Certificate Management**: Creates self-signed certificates automatically
+- **Firewall Configuration**: Opens required ports across all Windows profiles
+
+### ✅ VM Readiness Testing
+- **Multi-Level Testing**: Basic, Standard, and Full assessment modes
+- **Connectivity Validation**: Network, RDP, WinRM (HTTP/HTTPS), SSH
+- **Prerequisites Check**: .NET Framework, PowerShell, WMI, Internet access
+- **Interactive Fixes**: Prompts to configure missing components
+
+## 📦 What Gets Deployed
+
+### 🏗️ Phase 1: Windows VM Deployment
+- **VM Creation**: Deploys to Nutanix AHV clusters using v3.1 API
+- **Resource Selection**: Interactive cluster, network, and image selection
+- **Sysprep Customization**: Windows configuration and domain join
+- **Progress Monitoring**: Real-time deployment status tracking
+
+### 🛠️ Phase 2: Nutanix v4 API Environment
+- **PowerShell 7.4+**: Latest cross-platform PowerShell
+- **Python 3.13**: With virtual environment and package management
+- **Visual Studio Code 1.105+**: With PowerShell, Python, YAML extensions
+- **Git 2.42+**: Version control with Chocolatey installation
+- **API Repository**: Complete [`ntnx-v4api-cats`](https://github.com/hardevsanghera/ntnx-v4api-cats) environment
+- **Python Packages**: requests, pandas, openpyxl, urllib3
+
+## 🔧 Prerequisites
+
+- **Windows OS**: Windows 10/11, Server 2019/2022
+- **PowerShell**: 5.1+ (PowerShell 7+ recommended)
+- **Network Access**: Internet connectivity + Nutanix Prism Central access
+- **Permissions**: Administrator rights recommended for Phase 2
+- **Nutanix Environment**: Prism Central with AHV clusters
+
+## 🎮 Usage Examples
+
+### Complete Automated Deployment
+```powershell
+# Deploy VM and setup API environment with full automation
+.\Deploy-AutoWindows.ps1 -Phase All
+```
+
+### Development Environment Setup
+```powershell
+# Setup API environment on existing VM
+.\Setup-Phase2-ApiEnvironment.ps1 -VMIPAddress 10.38.19.22
+```
+
+### VM Validation and Preparation
+```powershell
+# Test VM and setup secure remoting
+.\Test-VMReadiness.ps1 -VMIPAddress 10.38.19.22 -AddToTrusted -TestLevel Full
+```
+
+### IP Discovery for Manual Phase 2
+```powershell
+# Find VM IP, then run Phase 2
+$vmIP = .\Get-VMIPAddress.ps1
+.\Setup-Phase2-ApiEnvironment.ps1 -VMIPAddress $vmIP
+```
+
+## 🔍 Troubleshooting & Diagnostics
+
+### Execution Logs
+```powershell
+# Check detailed logs
 Get-Content logs\deploy-auto-windows.log -Tail 50
-
-# Validate configuration
-.\Setup-Configuration.ps1 -Action Validate
-
-# Reset configuration to defaults
-.\Setup-Configuration.ps1 -Action Reset
+Get-Content logs\phase1.log -Tail 20
+Get-Content logs\phase2.log -Tail 20
 ```
 
-### Common Issues
-- **Network Connectivity**: Ensure access to Prism Central and internet
-- **Permissions**: Run with administrative privileges for Phase 2
-- **Prerequisites**: Verify PowerShell version and Windows compatibility
-- **Configuration**: Validate all required fields are populated
+### Common Scenarios
+```powershell
+# VM not getting IP address
+.\Get-VMIPAddress.ps1 -MaxRetries 10 -RetryDelay 60
 
-## Documentation
+# PowerShell remoting issues
+.\Test-VMReadiness.ps1 -VMIPAddress <IP> -AddToTrusted
 
-- **[Quick Start Guide](docs/QUICKSTART.md)** - Get up and running in 5 minutes
-- **[Advanced Usage](docs/ADVANCED.md)** - Comprehensive configuration and customization
-- **[Usage Examples](docs/EXAMPLES.md)** - Real-world deployment scenarios
-- **[Configuration Guide](config/README.md)** - Detailed configuration options
+# HTTPS configuration problems
+# (Script will prompt for automatic setup)
 
-## Integration
+# Clear cached passwords
+.\Deploy-AutoWindows.ps1 -DelPw
+```
 
-Auto-Windows integrates seamlessly with:
-- **CI/CD Pipelines** (Azure DevOps, GitHub Actions)
-- **Infrastructure as Code** (Terraform, PowerShell DSC)
-- **Configuration Management** (Ansible, Chef, Puppet)
-- **Monitoring Systems** (SCOM, Nagios, Zabbix)
+## 🚀 Integration & Automation
 
-## Source Repositories
+### CI/CD Pipeline Integration
+```powershell
+# Non-interactive deployment
+.\Deploy-AutoWindows.ps1 -NonInteractive -SkipPrerequisites
+```
 
-Auto-Windows leverages these external repositories:
-- **VM Deployment**: [deploy_win_vm_v1](https://github.com/hardevsanghera/deploy_win_vm_v1) - Python-based Windows VM deployment
-- **API Environment**: [ntnx-v4api-cats](https://github.com/hardevsanghera/ntnx-v4api-cats) - Nutanix v4 API development environment
+### Infrastructure as Code
+```powershell
+# Custom configuration
+.\Deploy-AutoWindows.ps1 -ConfigDirectory "environments\production"
+```
 
-## Contributing
+## 🔗 Source Repositories
+
+- **VM Deployment**: [`deploy_win_vm_v1`](https://github.com/hardevsanghera/deploy_win_vm_v1) - Python-based Nutanix VM deployment
+- **API Environment**: [`ntnx-v4api-cats`](https://github.com/hardevsanghera/ntnx-v4api-cats) - Nutanix v4 API development tools
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
+3. Test thoroughly with both phases
+4. Update documentation as needed
 5. Submit a pull request
 
-## License
+## 📄 License
 
-This project is provided "AS IS" for educational and development purposes. See individual source repositories for their specific licenses.
+Educational and development use. See individual source repositories for specific licenses.
 
-## Author
+## 👨‍💻 Author
 
-**Hardev Sanghera** - [hardev@nutanix.com](mailto:hardev@nutanix.com)
-
+**Hardev Sanghera** - Nutanix Solution Architect  
 *October 2025*
 
 ---
 
-## Support
+## 🆘 Support & Resources
 
-- **Documentation**: Check the `docs/` directory for comprehensive guides
-- **Logs**: Review logs in the `logs/` directory for troubleshooting
-- **Configuration**: Use `Setup-Configuration.ps1` for guided setup and validation
-- **Issues**: Report issues through the repository's issue tracking system
+- **📚 Documentation**: Complete guides in `docs/` directory
+- **🔧 Configuration**: Interactive setup with validation tools
+- **📋 Logging**: Comprehensive execution tracking in `logs/`
+- **🌐 Community**: Report issues via repository issue tracker
+- **💡 Examples**: Real-world scenarios in `docs/EXAMPLES.md`
