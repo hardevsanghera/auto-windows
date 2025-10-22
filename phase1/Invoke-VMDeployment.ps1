@@ -135,12 +135,13 @@ function Invoke-InteractiveDeployment {
     $env:VM_AUTOMATION_FILE = $automationFile
     
     try {
-        # Copy enhanced automation wrapper to deployment directory
-        $automationWrapper = Join-Path $PSScriptRoot "..\deploy_vm_automated_v4.py"
-        $deploymentDir = Join-Path $WorkingDirectory "repos\deploy_win_vm_v1"
-        $wrapperDestination = Join-Path $deploymentDir "deploy_vm_automated.py"
+        # Use the deploy_win_vm.py file from the external repository  
+        $deploymentDir = $RepoPath
+        $deploymentScript = Join-Path $deploymentDir "deploy_win_vm.py"
         
-        Copy-Item $automationWrapper $wrapperDestination -Force
+        if (-not (Test-Path $deploymentScript)) {
+            throw "Deployment script not found at: $deploymentScript"
+        }
         
         # Use virtual environment Python instead of global Python
         $venvPython = Join-Path $deploymentDir "venv\Scripts\python.exe"
@@ -148,8 +149,49 @@ function Invoke-InteractiveDeployment {
             throw "Virtual environment Python not found at: $venvPython"
         }
         
-        # Run the enhanced automation wrapper with virtual environment Python and capture output
-        $deployProcess = Start-Process -FilePath $venvPython -ArgumentList "deploy_vm_automated.py" -Wait -PassThru -NoNewWindow -WorkingDirectory $deploymentDir -RedirectStandardOutput "deployment_output.txt" -RedirectStandardError "deployment_error.txt"
+        # Read automation data and create input script for Python process
+        $automationData = Get-Content $automationFile | ConvertFrom-Json
+        
+        # Create input script with all required responses
+        $inputScript = @"
+$($automationData.vm_name)
+$($automationData.admin_password)
+$($automationData.confirm_password)
+$($automationData.proceed_deployment)
+$($automationData.pc_password)
+"@
+        
+        $inputFile = Join-Path $deploymentDir "input.txt"
+        $inputScript | Out-File -FilePath $inputFile -Encoding UTF8
+        
+        # Set environment variables for Python script
+        $env:PYTHONIOENCODING = "utf-8"
+        
+        try {
+            # Change to deployment directory and run Python script with input redirection
+            Push-Location $deploymentDir
+            
+            # Run the Python script with input redirection
+            $output = cmd /c "type `"$inputFile`" | `"$venvPython`" deploy_win_vm.py --deploy" 2>&1
+            
+            # Save output to file
+            $output | Out-File -FilePath "deployment_output.txt" -Encoding UTF8
+            
+            # Convert output to string for analysis
+            $outputString = ($output | Out-String)
+            
+            # Check if deployment was successful by looking for success indicators in output
+            $deploymentSuccess = $outputString -match "VM creation initiated successfully|VM UUID:|Task UUID:|successfully"
+            
+            if ($deploymentSuccess) {
+                Write-Host "VM deployment initiated successfully!" -ForegroundColor Green
+                Write-Host $outputString -ForegroundColor Cyan
+            }
+        }
+        finally {
+            Pop-Location
+            Remove-Item $inputFile -ErrorAction SilentlyContinue
+        }
         
         # Clean up automation file and environment variable after process completes
         if (Test-Path $automationFile) { Remove-Item $automationFile -Force }
@@ -161,10 +203,9 @@ function Invoke-InteractiveDeployment {
         Remove-Item Env:VM_AUTOMATION_FILE -ErrorAction SilentlyContinue
     }
     
-    if ($deployProcess.ExitCode -eq 0) {
+    if ($deploymentSuccess) {
         # Read captured output files
         $outputFile = Join-Path $deploymentDir "deployment_output.txt"
-        $errorFile = Join-Path $deploymentDir "deployment_error.txt"
         
         $capturedOutput = ""
         if (Test-Path $outputFile) {
@@ -197,7 +238,10 @@ function Invoke-InteractiveDeployment {
         }
     }
     else {
-        throw "VM deployment failed with exit code: $($deployProcess.ExitCode)"
+        # Deployment failed - display output for debugging
+        Write-Host "VM deployment failed. Output:" -ForegroundColor Red
+        Write-Host ($output -join "`n") -ForegroundColor Yellow
+        throw "VM deployment failed - no success indicators found in output"
     }
 }
 

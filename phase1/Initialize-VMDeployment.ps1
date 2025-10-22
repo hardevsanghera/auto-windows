@@ -240,14 +240,25 @@ function Install-PythonDependencies {
             # Activate virtual environment and install dependencies
             if (Test-Path "venv\Scripts\Activate.ps1") {
                 Write-Log "Activating virtual environment..."
-                & "venv\Scripts\Activate.ps1"
+                
+                # Use the virtual environment Python for installations
+                $venvPython = Join-Path $RepoPath "venv\Scripts\python.exe"
+                if (-not (Test-Path $venvPython)) {
+                    Write-Log "Virtual environment Python not found at: $venvPython" -Level "ERROR"
+                    return @{ Success = $false; PythonExe = $null }
+                }
                 
                 Write-Log "Installing Python dependencies..."
-                & $pythonExe -m pip install --upgrade pip
-                & $pythonExe -m pip install -r requirements.txt
+                & $venvPython -m pip install --upgrade pip
+                & $venvPython -m pip install -r requirements.txt
                 
-                Write-Log "Python environment setup completed" -Level "SUCCESS"
-                return @{ Success = $true; PythonExe = $pythonExe }
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Log "Python environment setup completed" -Level "SUCCESS"
+                    return @{ Success = $true; PythonExe = $venvPython }
+                } else {
+                    Write-Log "Failed to install dependencies" -Level "ERROR"
+                    return @{ Success = $false; PythonExe = $null }
+                }
             }
             else {
                 Write-Log "Virtual environment activation script not found" -Level "ERROR"
