@@ -1,20 +1,16 @@
 Auto-Windows Deployment Summary
 ==============================
-Start Time: 2025-10-21 19:20:03
-End Time: 2025-10-21 19:21:10
-Duration: 00:01:07
+Start Time: 2025-10-21 20:19:06
+End Time: 2025-10-21 20:20:03
+Duration: 00:00:56
 
 Phase Results:
-Phase 1 (VM Deployment): SUCCESS ✓
-  VM Name: HARDEV-1021
-  VM UUID: 256a9e97-24ef-4c49-9f29-63d91419f034
-  Task UUID: 6128f17e-6ba8-4514-b853-e8e83b3357ac
-Phase 2 (API Environment): SKIPPED
+Phase 1 (VM Deployment): SKIPPED
+Phase 2 (API Environment): FAILED ✗
 
-Overall Status: SUCCESS ✓
-Next Steps:
-1. Configure Nutanix Prism Central details in the API environment
-2. Use VS Code to develop and test API scripts
-3. Follow the documentation for detailed usage instructions
-
-Documentation: https://github.com/hardevsanghera/ntnx-v4api-cats
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues

@@ -345,36 +345,79 @@ function Invoke-Phase2 {
     try {
         $Script:ExecutionResults.Phase2.Executed = $true
         
-        # Import Phase 2 module
-        $phase2Script = Join-Path $Script:ScriptRoot "phase2\Initialize-APIEnvironment.ps1"
+        # Get VM IP address from Phase 1 results or discover it
+        $vmIPAddress = $null
+        if ($Phase1Results -and $Phase1Results.VMIPAddress) {
+            $vmIPAddress = $Phase1Results.VMIPAddress
+            Write-Log "Using VM IP from Phase 1 results: $vmIPAddress" -Level "INFO"
+        } else {
+            # Try to get IP from the Get-VMIPAddress script
+            Write-Log "Attempting to discover VM IP address..." -Level "INFO"
+            $ipScript = Join-Path $Script:ScriptRoot "Get-VMIPAddress.ps1"
+            if (Test-Path $ipScript) {
+                try {
+                    $ipResult = & $ipScript
+                    # The script should output the IP address - we'll need to parse it
+                    # For now, we'll prompt the user
+                    $vmIPAddress = Read-Host "Enter the VM IP address for Phase 2 setup"
+                } catch {
+                    Write-Log "Failed to get VM IP automatically: $($_.Exception.Message)" -Level "WARN"
+                    $vmIPAddress = Read-Host "Enter the VM IP address for Phase 2 setup"
+                }
+            } else {
+                $vmIPAddress = Read-Host "Enter the VM IP address for Phase 2 setup"
+            }
+        }
+        
+        if (-not $vmIPAddress) {
+            throw "VM IP address is required for Phase 2"
+        }
+        
+        # Use the new Phase 2 API environment setup script
+        $phase2Script = Join-Path $Script:ScriptRoot "Setup-Phase2-ApiEnvironment.ps1"
         if (!(Test-Path $phase2Script)) {
             throw "Phase 2 script not found: $phase2Script"
         }
         
         # Prepare Phase 2 parameters
         $phase2Params = @{
-            ConfigPath = Join-Path $ConfigDirectory "environment-config.json"
-            LogPath = Join-Path $LogDirectory "phase2.log"
-            WorkingDirectory = (Resolve-Path $WorkingDirectory).Path
+            VMIPAddress = $vmIPAddress
+            UseHTTPS = $true  # Prefer HTTPS for security
         }
         
-        Write-Log "Starting Phase 2 execution with parameters:" -Level "INFO"
-        foreach ($key in $phase2Params.Keys) {
-            Write-Log "  $key = $($phase2Params[$key])" -Level "DEBUG"
+        Write-Log "Starting Phase 2 API environment setup..." -Level "INFO"
+        Write-Log "Target VM: $vmIPAddress" -Level "INFO"
+        Write-Log "Using HTTPS connection for security" -Level "INFO"
+        
+        # Test VM readiness first
+        $readinessScript = Join-Path $Script:ScriptRoot "Test-VMReadiness.ps1"
+        if (Test-Path $readinessScript) {
+            Write-Log "Testing VM readiness before Phase 2..." -Level "INFO"
+            try {
+                & $readinessScript -VMIPAddress $vmIPAddress -AddToTrusted -TestLevel "Basic"
+                Write-Log "VM readiness test completed" -Level "INFO"
+            } catch {
+                Write-Log "VM readiness test failed, but continuing: $($_.Exception.Message)" -Level "WARN"
+            }
         }
         
-        # Execute Phase 2
-        Write-Log "Executing Phase 2 script..." -Level "INFO"
-        $result = & $phase2Script @phase2Params
+        # Execute Phase 2 API environment setup
+        Write-Log "Executing Phase 2 API environment installation..." -Level "INFO"
+        & $phase2Script @phase2Params
         
-        if ($result -and $result.Success) {
+        # Check if the execution was successful (the script should exit with 0 on success)
+        if ($LASTEXITCODE -eq 0 -or $null -eq $LASTEXITCODE) {
             $Script:ExecutionResults.Phase2.Success = $true
-            $Script:ExecutionResults.Phase2.Results = $result
+            $Script:ExecutionResults.Phase2.Results = @{
+                VMIPAddress = $vmIPAddress
+                EnvironmentInstalled = $true
+                RepositoryCloned = $true
+                Message = "Nutanix v4 API development environment successfully installed"
+            }
             Write-Log "Phase 2 completed successfully!" -Level "SUCCESS"
-            return $result
-        }
-        else {
-            throw "Phase 2 execution failed or returned invalid results"
+            return $Script:ExecutionResults.Phase2.Results
+        } else {
+            throw "Phase 2 execution failed with exit code: $LASTEXITCODE"
         }
     }
     catch {

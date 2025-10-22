@@ -1249,3 +1249,43 @@ Next Steps:
 Documentation: https://github.com/hardevsanghera/ntnx-v4api-cats
 [2025-10-21 19:21:10] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
 [2025-10-21 19:21:11] [SUCCESS] [MAIN] Auto-Windows deployment completed successfully!
+[2025-10-21 20:19:06] [INFO] [MAIN] Starting Auto-Windows deployment process...
+[2025-10-21 20:19:06] [INFO] [MAIN] Phase selection: 2
+[2025-10-21 20:19:06] [DEBUG] [MAIN] Script root: 
+[2025-10-21 20:19:06] [INFO] [MAIN] Initializing Auto-Windows environment...
+[2025-10-21 20:19:06] [SUCCESS] [MAIN] Environment initialization completed
+[2025-10-21 20:19:06] [INFO] [MAIN] Checking system prerequisites...
+[2025-10-21 20:19:06] [SUCCESS] [MAIN] PowerShell version check passed: 7.5.3
+[2025-10-21 20:19:06] [SUCCESS] [MAIN] Operating system check passed: Windows
+[2025-10-21 20:19:06] [SUCCESS] [MAIN] Internet connectivity verified
+[2025-10-21 20:19:07] [SUCCESS] [MAIN] Disk space check passed: 30.82GB available
+[2025-10-21 20:19:07] [SUCCESS] [MAIN] All prerequisites checks passed
+[2025-10-21 20:19:07] [SUCCESS] [MAIN] Global settings loaded from: config\settings.json
+[2025-10-21 20:19:07] [INFO] [MAIN] Execution plan: Phase1=False, Phase2=True
+[2025-10-21 20:19:15] [INFO] [MAIN] Attempting to discover VM IP address...
+[2025-10-21 20:19:51] [INFO] [MAIN] Starting Phase 2 API environment setup...
+[2025-10-21 20:19:51] [INFO] [MAIN] Target VM: 10.38.19.22
+[2025-10-21 20:19:51] [INFO] [MAIN] Using HTTPS connection for security
+[2025-10-21 20:19:51] [INFO] [MAIN] Testing VM readiness before Phase 2...
+[2025-10-21 20:19:58] [INFO] [MAIN] VM readiness test completed
+[2025-10-21 20:19:58] [INFO] [MAIN] Executing Phase 2 API environment installation...
+[2025-10-21 20:20:03] [ERROR] [MAIN] Phase 2 failed: Phase 2 execution failed with exit code: 1
+[2025-10-21 20:20:03] [ERROR] [MAIN] Auto-Windows deployment failed: Phase 2 execution failed with exit code: 1
+[2025-10-21 20:20:03] [INFO] [SUMMARY] Auto-Windows Deployment Summary
+==============================
+Start Time: 2025-10-21 20:19:06
+End Time: 2025-10-21 20:20:03
+Duration: 00:00:56
+
+Phase Results:
+Phase 1 (VM Deployment): SKIPPED
+Phase 2 (API Environment): FAILED ✗
+
+Overall Status: FAILED ✗
+Troubleshooting:
+1. Check the detailed logs in the 'logs' directory
+2. Review prerequisite requirements
+3. Ensure all configuration files are properly set
+4. Run individual phases to isolate issues
+[2025-10-21 20:20:03] [SUCCESS] [MAIN] Execution summary saved to: logs\execution-summary.txt
+[2025-10-21 20:20:03] [ERROR] [MAIN] Fatal error in Auto-Windows deployment: Phase 2 execution failed with exit code: 1
