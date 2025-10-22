@@ -3,3 +3,18 @@
 the sysprep for Windows 2022 also needs these additions after deployment of the target vm:
 -  Action: Enable PowerShell remoting: Enable-PSRemoting -Force
 -  For the local host the .\Test-VMReadiness.ps1 has a switch to add the target VM IP to local Trusted hosts
+
+# Get credentials and create session with explicit options
+$vmPassword = Get-CachedPassword -Username "vm-administrator"
+$securePassword = ConvertTo-SecureString $vmPassword -AsPlainText -Force
+$credential = New-Object System.Management.Automation.PSCredential("Administrator", $securePassword)
+$sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck
+$session = New-PSSession -ComputerName 10.38.19.22 -Port 5985 -Credential $credential -SessionOption $sessionOptions -Authentication Basic
+if ($session) { Write-Host "Session created successfully!" -ForegroundColor Green; Remove-PSSession $session } else { Write-Host "Failed to create session" -ForegroundColor Red }
+
+#fixed the above code to use port 5985 for HTTP instead of 5986 for HTTPS as the target vm is not yet configured for HTTPS remoting.
+$session = New-PSSession -ComputerName 10.38.19.22 -Credential $cred; if ($session) { Write-Host "✓ Session created! Configuring HTTPS..." -ForegroundColor Green; $result = Invoke-Command -Session $session -ScriptBlock { $cert = New-SelfSignedCertificate -DnsName $env:COMPUTERNAME -CertStoreLocation "Cert:\LocalMachine\My"; New-WSManInstance -ResourceURI winrm/config/listener -SelectorSet @{Transport="HTTPS"; Address="*"} -ValueSet @{Hostname=$env:COMPUTERNAME; CertificateThumbprint=$cert.Thumbprint; Port=5986} -ErrorAction SilentlyContinue; New-NetFirewallRule -DisplayName "WinRM HTTPS" -Direction Inbound -Protocol TCP -LocalPort 5986 -Action Allow -ErrorAction SilentlyContinue; "HTTPS configured with cert: $($cert.Thumbprint)" }; Write-Host "Result: $result" -ForegroundColor Cyan; Remove-PSSession $session } else { Write-Host "✗ Failed to create session" -ForegroundColor Red }
+
+#Perfect! The HTTPS listener is working but failing due to SSL certificate validation (expected with self-signed certificates). Let's test with SSL bypass:
+$sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck; $httpsSession = New-PSSession -ComputerName 10.38.19.22 -Port 5986 -UseSSL -SessionOption $sessionOptions -Credential $cred; if ($httpsSession) { Write-Host "✅ HTTPS PowerShell session successful!" -ForegroundColor Green; $result = Invoke-Command -Session $httpsSession -ScriptBlock { "HTTPS connection verified from $env:COMPUTERNAME" }; Write-Host "Remote result: $result" -ForegroundColor Cyan; Remove-PSSession $httpsSession } else { Write-Host "❌ HTTPS session failed" -ForegroundColor Red }  
+.\Test-VMReadiness.ps1 -VMIPAddress 10.38.19.22 -TestLevel Full
