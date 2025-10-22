@@ -1,1 +1,5 @@
 (venv) PS C:\Users\hardev.sanghera\Documents\v3\auto-windows> $sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck; $testSession = New-PSSession -ComputerName 10.38.19.26 -Port 5986 -UseSSL -SessionOption $sessionOptions -Credential (Get-Credential) -ErrorAction SilentlyContinue; if ($testSession) { Write-Host "HTTPS connection successful!" -ForegroundColor Green; Remove-PSSession $testSession } else { Write-Host "HTTPS connection failed" -ForegroundColor Red }
+
+the sysprep for Windows 2022 also needs these additions after deployment of the target vm:
+-  Action: Enable PowerShell remoting: Enable-PSRemoting -Force
+-  For the local host the .\Test-VMReadiness.ps1 has a switch to add the target VM IP to local Trusted hosts

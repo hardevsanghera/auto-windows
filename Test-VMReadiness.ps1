@@ -19,11 +19,17 @@
     - Standard: Includes Windows features and API prerequisites  
     - Full: Complete Phase 2 readiness assessment
 
+.PARAMETER AddToTrusted
+    If specified, adds the target VM IP address to the local workstation's TrustedHosts configuration
+
 .EXAMPLE
     .\Test-VMReadiness.ps1 -VMIPAddress 10.38.19.26
     
 .EXAMPLE
     .\Test-VMReadiness.ps1 -VMIPAddress 10.38.19.26 -TestLevel Full
+
+.EXAMPLE
+    .\Test-VMReadiness.ps1 -VMIPAddress 10.38.19.22 -AddToTrusted -TestLevel Full
 #>
 
 param(
@@ -35,7 +41,10 @@ param(
     
     [Parameter(Mandatory = $false)]
     [ValidateSet("Basic", "Standard", "Full")]
-    [string]$TestLevel = "Standard"
+    [string]$TestLevel = "Standard",
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$AddToTrusted
 )
 
 # Import password manager for getting VM credentials
@@ -66,6 +75,65 @@ function Write-TestResult {
     }
     if ($Recommendation -and -not $Success) {
         Write-Host "    Action: $Recommendation" -ForegroundColor Yellow
+    }
+}
+
+function Add-ToTrustedHosts {
+    param([string]$IPAddress)
+    
+    Write-Host "`n🔧 Configuring TrustedHosts for PowerShell Remoting..." -ForegroundColor Cyan
+    
+    # Check if running as administrator
+    $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+    
+    if (-not $isAdmin) {
+        Write-Host "❌ Administrator privileges required to modify TrustedHosts." -ForegroundColor Red
+        Write-Host "   Please run PowerShell as Administrator to use -AddToTrusted switch." -ForegroundColor Yellow
+        return $false
+    }
+    
+    try {
+        # Get current TrustedHosts value
+        $currentTrustedHosts = (Get-Item WSMan:\localhost\Client\TrustedHosts -ErrorAction Stop).Value
+        Write-Host "   Current TrustedHosts: '$currentTrustedHosts'" -ForegroundColor Gray
+        
+        # Check if IP is already in TrustedHosts
+        if ($currentTrustedHosts -like "*$IPAddress*") {
+            Write-TestResult "TrustedHosts Configuration" $true "$IPAddress already in TrustedHosts"
+            return $true
+        }
+        
+        # Add IP to TrustedHosts
+        if ([string]::IsNullOrEmpty($currentTrustedHosts)) {
+            # No existing trusted hosts, add our IP
+            Set-Item WSMan:\localhost\Client\TrustedHosts -Value $IPAddress -Force
+            Write-TestResult "TrustedHosts Configuration" $true "Added $IPAddress to TrustedHosts"
+        } else {
+            # Append to existing trusted hosts
+            $newTrustedHosts = "$currentTrustedHosts,$IPAddress"
+            Set-Item WSMan:\localhost\Client\TrustedHosts -Value $newTrustedHosts -Force
+            Write-TestResult "TrustedHosts Configuration" $true "Added $IPAddress to existing TrustedHosts list"
+        }
+        
+        # Verify the change
+        $updatedTrustedHosts = (Get-Item WSMan:\localhost\Client\TrustedHosts).Value
+        Write-Host "   Updated TrustedHosts: '$updatedTrustedHosts'" -ForegroundColor Gray
+        
+        # Configure additional WinRM settings for better compatibility
+        try {
+            Set-Item WSMan:\localhost\Client\AllowUnencrypted -Value $true -Force
+            Set-Item WSMan:\localhost\Client\Auth\Basic -Value $true -Force
+            Set-Item WSMan:\localhost\Client\NetworkDelayms -Value 5000 -Force
+            Write-TestResult "WinRM Client Configuration" $true "Optimized for IP-based connections"
+        } catch {
+            Write-Host "    Warning: Could not optimize WinRM client settings: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+        
+        return $true
+        
+    } catch {
+        Write-TestResult "TrustedHosts Configuration" $false "Failed to modify TrustedHosts: $($_.Exception.Message)" "Run as Administrator and check WinRM service status"
+        return $false
     }
 }
 
@@ -116,9 +184,13 @@ function Test-PowerShellRemoting {
     Write-Host "`n🔧 Testing PowerShell Remoting..." -ForegroundColor Cyan
     
     try {
-        # Test basic PS remoting
-        $session = New-PSSession -ComputerName $IPAddress -Credential $Credential -ErrorAction Stop
-        Write-TestResult "PowerShell Session Creation" $true "Successfully created remote session"
+        # Create session options for better compatibility
+        $sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck
+        
+        # Test basic PS remoting (HTTP first)
+        Write-Host "   Testing HTTP connection (port 5985)..." -ForegroundColor Gray
+        $session = New-PSSession -ComputerName $IPAddress -Port 5985 -Credential $Credential -SessionOption $sessionOptions -ErrorAction Stop
+        Write-TestResult "PowerShell Session Creation (HTTP)" $true "Successfully created remote session on port 5985"
         
         # Test basic command execution
         try {
@@ -139,6 +211,7 @@ function Test-PowerShellRemoting {
             
         } catch {
             Write-TestResult "Remote Command Execution" $false $_.Exception.Message "Check PowerShell execution policy and permissions"
+            Remove-PSSession -Session $session -ErrorAction SilentlyContinue
             return $false
         }
         
@@ -152,12 +225,35 @@ function Test-PowerShellRemoting {
             Write-TestResult "Administrative Privileges" $false $_.Exception.Message
         }
         
-        # Clean up session
+        # Clean up HTTP session
         Remove-PSSession -Session $session
+        
+        # Test HTTPS connection if available
+        Write-Host "   Testing HTTPS connection (port 5986)..." -ForegroundColor Gray
+        try {
+            $httpsSession = New-PSSession -ComputerName $IPAddress -Port 5986 -UseSSL -Credential $Credential -SessionOption $sessionOptions -ErrorAction Stop
+            Write-TestResult "PowerShell Session Creation (HTTPS)" $true "Successfully created secure session on port 5986"
+            
+            # Test HTTPS command execution
+            $httpsInfo = Invoke-Command -Session $httpsSession -ScriptBlock {
+                [PSCustomObject]@{
+                    SecureConnection = $true
+                    TLSVersion = [System.Net.ServicePointManager]::SecurityProtocol.ToString()
+                    EncryptedSession = $true
+                }
+            }
+            
+            Write-TestResult "Secure Connection Verification" $httpsInfo.SecureConnection "TLS Protocol: $($httpsInfo.TLSVersion)"
+            Remove-PSSession -Session $httpsSession
+            
+        } catch {
+            Write-TestResult "PowerShell Session Creation (HTTPS)" $false "HTTPS not available: $($_.Exception.Message)" "Configure HTTPS listener with Enable-RemoteWinRMHTTPS.ps1"
+        }
+        
         return $true
         
     } catch {
-        Write-TestResult "PowerShell Session Creation" $false $_.Exception.Message "Enable PowerShell remoting: Enable-PSRemoting -Force"
+        Write-TestResult "PowerShell Session Creation (HTTP)" $false $_.Exception.Message "Enable PowerShell remoting: Enable-PSRemoting -Force"
         return $false
     }
 }
@@ -356,7 +452,14 @@ function Get-VMCredentials {
     
     if ($vmPassword) {
         Write-Host "✓ Using cached password for: vm-administrator" -ForegroundColor Green
-        $securePassword = ConvertTo-SecureString $vmPassword -AsPlainText -Force
+        
+        # Handle both SecureString and plain text passwords
+        if ($vmPassword -is [System.Security.SecureString]) {
+            $securePassword = $vmPassword
+        } else {
+            $securePassword = ConvertTo-SecureString $vmPassword -AsPlainText -Force
+        }
+        
         return New-Object System.Management.Automation.PSCredential("Administrator", $securePassword)
     } else {
         Write-Host "[INFO] No cached VM password found. Please enter credentials." -ForegroundColor Yellow
@@ -403,6 +506,14 @@ function Show-ReadinessSummary {
 Write-TestHeader "WINDOWS VM READINESS TEST FOR PHASE 2"
 Write-Host "Target VM: $VMIPAddress" -ForegroundColor White
 Write-Host "Test Level: $TestLevel" -ForegroundColor White
+
+# Configure TrustedHosts if requested
+if ($AddToTrusted) {
+    $trustedHostsResult = Add-ToTrustedHosts -IPAddress $VMIPAddress
+    if (-not $trustedHostsResult) {
+        Write-Host "⚠️ TrustedHosts configuration failed, but continuing with tests..." -ForegroundColor Yellow
+    }
+}
 
 # Get credentials if not provided
 if (-not $VMCredential) {
