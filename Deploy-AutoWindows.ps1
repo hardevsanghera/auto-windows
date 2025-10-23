@@ -11,7 +11,14 @@
     - Executes VM deployment workflow (resource selection + deployment)
     
     PHASE 2: Nutanix v4 API Environment Setup  
-    - Downloads Install-NtnxV4ApiEnvironment.ps1 script
+    - Downloads Instal                # Wait for job completion with timeout
+                $jobResult = Wait-Job $ipDiscoveryJob -Timeout 180
+                
+                if ($jobResult) {
+                    $ipResult = Receive-Job $ipDiscoveryJob
+                    Remove-Job $ipDiscoveryJob
+                } else {
+                    Write-Log "IP discovery timed out after 180 seconds" -Level "WARN"ApiEnvironment.ps1 script
     - Installs PowerShell 7, Python 3.13+, VS Code, Git
     - Sets up Nutanix v4 API development environment
 
@@ -461,8 +468,32 @@ function Wait-ForVMIPAddress {
         try {
             $ipScript = Join-Path $Script:ScriptRoot "Get-VMIPAddress.ps1"
             if (Test-Path $ipScript) {
-                # Run the script and capture output
-                $ipResult = & $ipScript -VMUUID $VMUUID -MaxRetries 1 -RetryDelay 5 2>&1
+                # Create isolated password environment for IP discovery
+                Write-Log "Starting IP discovery attempt $attempt with isolated credentials..." -Level "INFO"
+                
+                # Pre-verify admin password exists and is valid
+                $adminPassword = & (Join-Path $Script:ScriptRoot "PasswordManager.ps1") -Action Get -Username admin 2>$null
+                if (-not $adminPassword -or $adminPassword -eq "No password found") {
+                    Write-Log "Password cache corrupted - will use manual entry for this attempt" -Level "WARN"
+                }
+                
+                # Run IP discovery with timeout and error capture
+                $ipDiscoveryJob = Start-Job -ScriptBlock {
+                    param($ScriptPath, $VMUUID)
+                    & $ScriptPath -VMUUID $VMUUID -MaxRetries 1 -RetryDelay 5 2>&1
+                } -ArgumentList $ipScript, $VMUUID
+                
+                # Wait for job completion with timeout
+                $jobResult = Wait-Job $ipDiscoveryJob -Timeout 120
+                
+                if ($jobResult) {
+                    $ipResult = Receive-Job $ipDiscoveryJob
+                    Remove-Job $ipDiscoveryJob -Force
+                } else {
+                    Write-Log "IP discovery timed out after 120 seconds" -Level "WARN"
+                    Remove-Job $ipDiscoveryJob -Force
+                    $ipResult = @("Timeout - no response from IP discovery script")
+                }
                 
                 # Check for API connectivity issues
                 $apiError = $ipResult | Where-Object { $_ -match "connection.*failed|timeout|Failed to query VM" }
@@ -487,11 +518,40 @@ function Wait-ForVMIPAddress {
                 # Parse the output for IP address
                 $ipAddress = Parse-IPFromOutput -Output $ipResult
                 
+                # Enhanced debugging - show what patterns we're trying to match
+                if (-not $ipAddress) {
+                    Write-Log "Detailed pattern matching debug:" -Level "DEBUG"
+                    foreach ($line in $ipResult) {
+                        if ($line -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}") {
+                            Write-Log "  Line with IP pattern: '$line'" -Level "DEBUG"
+                            # Try all patterns manually for debugging
+                            if ($line -match "IP Address:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
+                                $ipAddress = $matches[1]
+                                Write-Log "  Matched basic IP Address pattern: $ipAddress" -Level "DEBUG"
+                                break
+                            }
+                        }
+                    }
+                }
+                
                 if ($ipAddress) {
                     Write-Log "VM IP address discovered: $ipAddress" -Level "SUCCESS"
                     return $ipAddress
                 } else {
-                    Write-Log "No IP address parsed from output" -Level "DEBUG"
+                    Write-Log "Standard IP discovery failed, trying direct API approach..." -Level "WARN"
+                    
+                    # Emergency fallback - direct API call
+                    if ($attempt -eq $maxAttempts) {
+                        Write-Log "Final attempt: Using direct Prism Central API call" -Level "INFO"
+                        $directIP = Get-VMIPDirectAPI -VMUUID $VMUUID
+                        if ($directIP) {
+                            Write-Log "Direct API call successful: $directIP" -Level "SUCCESS"
+                            return $directIP
+                        }
+                    }
+                    
+                    Write-Log "No IP address found in attempt $attempt" -Level "DEBUG"
+                    Write-Log "Total output lines: $($ipResult.Count)" -Level "DEBUG"
                 }
             }
             
@@ -548,27 +608,85 @@ function Wait-ForVMIPAddress {
 function Parse-IPFromOutput {
     param([string[]]$Output)
     
-    # Look for IP address pattern in output
+    Write-Log "=== IP PARSING DEBUG ===" -Level "DEBUG"
+    Write-Log "Total lines to parse: $($Output.Count)" -Level "DEBUG"
+    
+    # Look for IP address pattern in output with comprehensive matching
     foreach ($line in $Output) {
-        # Handle output with leading spaces: "   IP Address: x.x.x.x"
-        if ($line -match "\s*IP Address:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
-            return $matches[1]
-        }
-        # Also check for primary IP pattern
-        if ($line -match "\s*Primary IP:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
-            return $matches[1]
-        }
-        # Handle direct IP pattern without label
-        if ($line -match "^\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*$") {
-            return $matches[1]
-        }
-        # Handle the specific format from Get-VMIPAddress.ps1: "  IP Address: x.x.x.x (Type: LEARNED)"
-        if ($line -match "IP Address:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*\(Type:") {
-            return $matches[1]
+        Write-Log "Parsing line: '$line'" -Level "DEBUG"
+        
+        # Check if line contains an IP address at all
+        if ($line -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}") {
+            Write-Log "Line contains IP pattern: '$line'" -Level "DEBUG"
+            
+            # Extract any IP address from the line - most permissive approach
+            if ($line -match "(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
+                $foundIP = $matches[1]
+                Write-Log "Extracted IP: $foundIP" -Level "DEBUG"
+                
+                # Basic IP validation - exclude obviously invalid IPs
+                $octets = $foundIP.Split('.')
+                $validIP = $true
+                foreach ($octet in $octets) {
+                    if ([int]$octet -gt 255) {
+                        $validIP = $false
+                        break
+                    }
+                }
+                
+                if ($validIP) {
+                    Write-Log "Valid IP found: $foundIP" -Level "SUCCESS"
+                    return $foundIP
+                }
+            }
         }
     }
     
+    Write-Log "=== NO IP FOUND IN OUTPUT ===" -Level "WARN"
     return $null
+}
+
+function Get-VMIPDirectAPI {
+    param([string]$VMUUID)
+    
+    try {
+        Write-Log "Attempting direct Prism Central API call for VM: $VMUUID" -Level "INFO"
+        
+        # Get cached admin password
+        $adminPassword = & (Join-Path $Script:ScriptRoot "PasswordManager.ps1") -Action Get -Username admin 2>$null
+        if (-not $adminPassword -or $adminPassword -eq "No password found") {
+            Write-Log "No cached password available for direct API call" -Level "WARN"
+            return $null
+        }
+        
+        # Direct API call
+        $base64Auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:$adminPassword"))
+        $headers = @{
+            "Authorization" = "Basic $base64Auth"
+            "Content-Type" = "application/json"
+            "Accept" = "application/json"
+        }
+        
+        $uri = "https://10.38.2.137:9440/api/nutanix/v3/vms/$VMUUID"
+        $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get -SkipCertificateCheck -TimeoutSec 30
+        
+        # Extract IP from response
+        $nicList = $response.status.resources.nic_list
+        if ($nicList -and $nicList[0].ip_endpoint_list) {
+            $ipAddress = $nicList[0].ip_endpoint_list[0].ip
+            if ($ipAddress) {
+                Write-Log "Direct API discovered IP: $ipAddress" -Level "SUCCESS"
+                return $ipAddress
+            }
+        }
+        
+        Write-Log "No IP found in direct API response" -Level "WARN"
+        return $null
+        
+    } catch {
+        Write-Log "Direct API call failed: $($_.Exception.Message)" -Level "WARN"
+        return $null
+    }
 }
 
 function Get-VMIPFromScript {

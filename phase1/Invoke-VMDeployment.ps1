@@ -111,12 +111,10 @@ function Invoke-InteractiveDeployment {
     $adminPassword = Get-AdminPassword -Config $Config
     
     # Get Prism Central password using password manager
-    . (Join-Path $PSScriptRoot "..\PasswordManager.ps1")
-    Write-Host "Prism Central Password:" -ForegroundColor Cyan
-    $pcSecurePassword = Get-AdminPassword -Username $Config.prismCentral.username
-    $pcPassword = ""
-    if ($pcSecurePassword) {
-        $pcPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pcSecurePassword))
+    $pcPassword = & (Join-Path $PSScriptRoot "..\PasswordManager.ps1") -Action Get -Username $Config.prismCentral.username
+    if (-not $pcPassword -or $pcPassword -eq "No password found") {
+        Write-Host "Prism Central Password:" -ForegroundColor Cyan
+        $pcPassword = & (Join-Path $PSScriptRoot "..\PasswordManager.ps1") -Action Set -Username $Config.prismCentral.username
     }
     
     # Create automation input file for VM deployment
@@ -285,44 +283,81 @@ function Get-VMName {
     # Check if VM name is specified in config
     if ($Config.vmConfiguration.namePrefix) {
         $prefix = $Config.vmConfiguration.namePrefix
-        $timestamp = Get-Date -Format "MMdd-HHmm"
-        $fullName = "$prefix$timestamp"
+        
+        # Generate timestamp and random suffix in format HHmm-XY
+        $currentTime = Get-Date
+        $timeString = $currentTime.ToString("HHmm")
+        
+        # Generate random uppercase letter (A-Z)
+        $randomLetter = [char](Get-Random -Minimum 65 -Maximum 91)
+        
+        # Generate random digit (0-9)
+        $randomDigit = Get-Random -Minimum 0 -Maximum 10
+        
+        # Create suffix in format HHmm-XY
+        $suffix = "$timeString-$randomLetter$randomDigit"
+        $fullName = "$prefix$suffix"
         
         # Ensure VM name doesn't exceed 15 characters (Windows computer name limit)
         if ($fullName.Length -gt 15) {
-            # Truncate prefix and add shorter timestamp
-            $shortTimestamp = Get-Date -Format "MMdd"
-            $maxPrefixLength = 15 - $shortTimestamp.Length
-            $truncatedPrefix = $prefix.Substring(0, [Math]::Min($prefix.Length, $maxPrefixLength))
-            $fullName = "$truncatedPrefix$shortTimestamp"
+            # Calculate available space for prefix
+            $suffixLength = $suffix.Length  # Should be 7 characters (HHmm-XY)
+            $maxPrefixLength = 15 - $suffixLength
             
-            # If still too long, use a more aggressive approach
-            if ($fullName.Length -gt 15) {
-                $shortTimestamp = Get-Date -Format "Hmm"  # Hour + minute
-                $maxPrefixLength = 15 - $shortTimestamp.Length
+            if ($maxPrefixLength -gt 0) {
                 $truncatedPrefix = $prefix.Substring(0, [Math]::Min($prefix.Length, $maxPrefixLength))
-                $fullName = "$truncatedPrefix$shortTimestamp"
+                $fullName = "$truncatedPrefix$suffix"
+            } else {
+                # If suffix alone exceeds 15 characters (shouldn't happen), use fallback
+                $fallbackSuffix = "$($currentTime.ToString("Hmm"))-$randomLetter$randomDigit"  # Remove leading zero from hour
+                $maxPrefixLength = 15 - $fallbackSuffix.Length
+                if ($maxPrefixLength -gt 0) {
+                    $truncatedPrefix = $prefix.Substring(0, [Math]::Min($prefix.Length, $maxPrefixLength))
+                    $fullName = "$truncatedPrefix$fallbackSuffix"
+                } else {
+                    # Ultimate fallback: use only suffix
+                    $fullName = $fallbackSuffix
+                }
             }
         }
         
         return $fullName
     }
     
-    # Prompt for VM name
+    # Prompt for VM name base (will be appended with timestamp and random suffix)
     do {
-        $vmName = Read-Host "Enter VM name (max 15 characters, alphanumeric + hyphens/underscores)"
-        if ($vmName.Length -gt 15) {
-            Write-Host "VM name too long. Maximum 15 characters." -ForegroundColor Red
+        $baseVMName = Read-Host "Enter VM name base (will be appended with HHmm-XY suffix)"
+        
+        # Generate timestamp and random suffix in format HHmm-XY
+        $currentTime = Get-Date
+        $timeString = $currentTime.ToString("HHmm")
+        
+        # Generate random uppercase letter (A-Z)
+        $randomLetter = [char](Get-Random -Minimum 65 -Maximum 91)
+        
+        # Generate random digit (0-9)
+        $randomDigit = Get-Random -Minimum 0 -Maximum 10
+        
+        # Create suffix in format HHmm-XY
+        $suffix = "$timeString-$randomLetter$randomDigit"
+        $fullVMName = "$baseVMName$suffix"
+        
+        # Check total length including suffix
+        if ($fullVMName.Length -gt 15) {
+            $maxBaseLength = 15 - $suffix.Length
+            Write-Host "Base name too long. Maximum $maxBaseLength characters allowed (total will be $($fullVMName.Length) with suffix '$suffix')." -ForegroundColor Red
             continue
         }
-        if ($vmName -notmatch '^[a-zA-Z0-9_-]+$') {
-            Write-Host "VM name contains invalid characters. Use alphanumeric, hyphens, or underscores only." -ForegroundColor Red
+        if ($baseVMName -notmatch '^[a-zA-Z0-9_-]+$') {
+            Write-Host "Base name contains invalid characters. Use alphanumeric, hyphens, or underscores only." -ForegroundColor Red
             continue
         }
+        
+        Write-Host "Full VM name will be: $fullVMName" -ForegroundColor Green
         break
     } while ($true)
     
-    return $vmName
+    return $fullVMName
 }
 
 function Get-AdminPassword {
@@ -332,16 +367,14 @@ function Get-AdminPassword {
     if ($Config.vmConfiguration.adminPassword) {
         return $Config.vmConfiguration.adminPassword
     }
-    
-    # Import password manager
-    . (Join-Path $PSScriptRoot "..\PasswordManager.ps1")
-    
+
     # Use password manager for VM admin password
     Write-Host "VM Administrator Password:" -ForegroundColor Cyan
-    $securePassword = Get-AdminPassword -Username "vm-administrator"
+    $passwordManagerPath = Join-Path $PSScriptRoot "..\PasswordManager.ps1"
+    $plainPassword = & $passwordManagerPath -Action Get -Username "vm-administrator"
     
-    if ($securePassword) {
-        return [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+    if ($plainPassword -and $plainPassword -ne "No password found") {
+        return $plainPassword
     }
     
     # Fallback to manual prompt if password manager fails
