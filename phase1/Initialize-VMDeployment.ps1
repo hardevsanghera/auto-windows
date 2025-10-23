@@ -340,6 +340,9 @@ try {
         throw "Failed to load deployment configuration"
     }
     
+    # Add WorkingDirectory to config object
+    $config | Add-Member -NotePropertyName "WorkingDirectory" -NotePropertyValue $WorkingDirectory -Force
+    
     # Start Phase 1 deployment
     $result = Start-Phase1Deployment -Config $config
     

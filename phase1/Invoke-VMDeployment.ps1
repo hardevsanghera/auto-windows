@@ -25,7 +25,9 @@ function Invoke-VMDeploymentProcess {
         [string]$PythonExe = "python"
     )
     
-    Write-Host "=== VM DEPLOYMENT PROCESS ===" -ForegroundColor Cyan
+    # Get working directory from config
+    $WorkingDirectory = $Config.WorkingDirectory
+    Write-Host "DEBUG: WorkingDirectory = '$WorkingDirectory'" -ForegroundColor Magenta
     
     try {
         Push-Location $RepoPath
@@ -119,6 +121,7 @@ function Invoke-InteractiveDeployment {
     
     # Create automation input file for VM deployment
     $automationFile = Join-Path $WorkingDirectory "vm_automation_input.json"
+    Write-Host "DEBUG: Creating automation file at: '$automationFile'" -ForegroundColor Magenta
     $automationData = @{
         vm_name = $vmName
         admin_password = $adminPassword
@@ -126,7 +129,9 @@ function Invoke-InteractiveDeployment {
         pc_password = $pcPassword
         proceed_deployment = "y"
     }
+    Write-Host "DEBUG: Automation data created successfully" -ForegroundColor Magenta
     $automationData | ConvertTo-Json | Set-Content $automationFile
+    Write-Host "DEBUG: Automation file written successfully" -ForegroundColor Magenta
     
     # Execute VM deployment with automation support
     Write-Host "Deploying VM: $vmName" -ForegroundColor Cyan
@@ -152,17 +157,23 @@ function Invoke-InteractiveDeployment {
         # Read automation data and create input script for Python process
         $automationData = Get-Content $automationFile | ConvertFrom-Json
         
-        # Create input script with all required responses
+        # Create input script with all required responses in the exact order expected
         $inputScript = @"
 $($automationData.vm_name)
-$($automationData.admin_password)
-$($automationData.confirm_password)
-$($automationData.proceed_deployment)
-$($automationData.pc_password)
+y
 "@
         
         $inputFile = Join-Path $deploymentDir "input.txt"
         $inputScript | Out-File -FilePath $inputFile -Encoding UTF8
+        
+        Write-Host "DEBUG: Created input file at: '$inputFile'" -ForegroundColor Magenta
+        Write-Host "DEBUG: Input file contents:" -ForegroundColor Magenta
+        Get-Content $inputFile | ForEach-Object { Write-Host "  > $_" -ForegroundColor Yellow }
+        
+        Write-Host "Created input file with:" -ForegroundColor Yellow
+        Write-Host "VM Name: $($automationData.vm_name)" -ForegroundColor Gray
+        Write-Host "Deploy Confirmation: y" -ForegroundColor Gray
+        Write-Host "Proceed: $($automationData.proceed_deployment)" -ForegroundColor Gray
         
         # Set environment variables for Python script
         $env:PYTHONIOENCODING = "utf-8"
@@ -181,31 +192,42 @@ $($automationData.pc_password)
             $outputString = ($output | Out-String)
             
             # Check if deployment was successful by looking for success indicators in output
-            $deploymentSuccess = $outputString -match "VM creation initiated successfully|VM UUID:|Task UUID:|successfully"
+            $deploymentSuccess = $outputString -match "VM creation initiated successfully|VM UUID:|Task UUID:|successfully!" -and 
+                                 $outputString -notmatch "Deployment cancelled|failed|error"
             
             if ($deploymentSuccess) {
                 Write-Host "VM deployment initiated successfully!" -ForegroundColor Green
                 Write-Host $outputString -ForegroundColor Cyan
+            } else {
+                Write-Host "VM deployment encountered issues:" -ForegroundColor Yellow
+                Write-Host $outputString -ForegroundColor Gray
             }
         }
         finally {
             Pop-Location
-            Remove-Item $inputFile -ErrorAction SilentlyContinue
+            if ($inputFile -and (Test-Path $inputFile)) { 
+                Remove-Item $inputFile -ErrorAction SilentlyContinue 
+            }
         }
         
         # Clean up automation file and environment variable after process completes
-        if (Test-Path $automationFile) { Remove-Item $automationFile -Force }
+        if ($automationFile -and (Test-Path $automationFile)) { 
+            Remove-Item $automationFile -Force -ErrorAction SilentlyContinue 
+        }
         Remove-Item Env:VM_AUTOMATION_FILE -ErrorAction SilentlyContinue
     }
     finally {
         # Ensure cleanup in case of exceptions
-        if (Test-Path $automationFile) { Remove-Item $automationFile -Force -ErrorAction SilentlyContinue }
+        if ($automationFile -and (Test-Path $automationFile)) { 
+            Remove-Item $automationFile -Force -ErrorAction SilentlyContinue 
+        }
         Remove-Item Env:VM_AUTOMATION_FILE -ErrorAction SilentlyContinue
     }
     
     if ($deploymentSuccess) {
         # Read captured output files
         $outputFile = Join-Path $deploymentDir "deployment_output.txt"
+        $errorFile = Join-Path $deploymentDir "deployment_error.txt"
         
         $capturedOutput = ""
         if (Test-Path $outputFile) {
