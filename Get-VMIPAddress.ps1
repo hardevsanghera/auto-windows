@@ -6,7 +6,7 @@
 .DESCRIPTION
     Queries the Nutanix Prism Central API to get the IP address of the most recently deployed VM.
          Write-Host "[INFO] Opening Prism Central web interface for manual VM check..." -ForegroundColor Cyan
-        Start-Process "https://10.38.2.137:9440" Uses the cached admin password if available.
+        Start-Process "https://$(Get-PrismCentralIP):9440" Uses the cached admin password if available.
 
 .PARAMETER VMName
     Specific VM name to query (optional - defaults to latest deployed VM)
@@ -40,18 +40,46 @@ param(
 
 # Import password manager
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+function Get-PrismCentralIP {
+    <#
+    .SYNOPSIS
+    Get Prism Central IP address from configuration
+    
+    .OUTPUTS
+    Returns Prism Central IP address
+    #>
+    try {
+        $configPath = Join-Path $scriptRoot "config\deployment-config.json"
+        if (Test-Path $configPath) {
+            $config = Get-Content $configPath | ConvertFrom-Json
+            return $config.prismCentral.ip
+        }
+        else {
+            Write-Warning "Configuration file not found: $configPath"
+            return "10.38.10.138"  # Fallback default
+        }
+    }
+    catch {
+        Write-Warning "Failed to read Prism Central IP from config: $($_.Exception.Message)"
+        return "10.38.10.138"  # Fallback default
+    }
+}
+
 Import-Module (Join-Path $scriptRoot "PasswordManager.ps1") -Force
 
 function Get-VMIPFromPrismCentral {
     param(
-        [string]$PCHost = "10.38.2.137",
+        [string]$PCHost = (Get-PrismCentralIP),
         [string]$Username = "admin",
         [string]$Password,
         [string]$VMUUID
     )
     
     try {
+        Write-Host "DEBUG: Get-VMIPFromPrismCentral called with Username: '$Username', Password: '$Password' (Length: $($Password.Length))" -ForegroundColor Magenta
         $base64Auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$Username`:$Password"))
+        Write-Host "DEBUG: Created base64Auth: '$base64Auth'" -ForegroundColor Magenta
         $headers = @{
             "Authorization" = "Basic $base64Auth"
             "Content-Type" = "application/json"
@@ -59,6 +87,7 @@ function Get-VMIPFromPrismCentral {
         }
         
         $uri = "https://$PCHost`:9440/api/nutanix/v3/vms/$VMUUID"
+        Write-Host "DEBUG: Making API call to: $uri" -ForegroundColor Magenta
         
         Write-Host "[INFO] Querying VM details..." -ForegroundColor Cyan
         
@@ -73,8 +102,19 @@ function Get-VMIPFromPrismCentral {
         # Check network interfaces - IP addresses are in status.resources, not spec.resources
         $nicList = $response.status.resources.nic_list
         
+        Write-Host "DEBUG: Raw nic_list data: $($nicList | ConvertTo-Json -Depth 3)" -ForegroundColor Magenta
+        
         if (-not $nicList -or $nicList.Count -eq 0) {
-            Write-Host "[WARN] No network interfaces found" -ForegroundColor Yellow
+            Write-Host "[WARN] No network interfaces found in status.resources.nic_list" -ForegroundColor Yellow
+            Write-Host "DEBUG: VM may still be initializing. Checking spec.resources.nic_list..." -ForegroundColor Magenta
+            
+            # Check if NICs are defined in spec but not yet populated in status
+            $specNicList = $response.spec.resources.nic_list
+            if ($specNicList -and $specNicList.Count -gt 0) {
+                Write-Host "[INFO] Found $($specNicList.Count) network interface(s) defined in spec, but not yet active in status" -ForegroundColor Yellow
+                Write-Host "[INFO] VM may still be booting. Network interfaces should appear shortly." -ForegroundColor Yellow
+            }
+            
             return $null
         }
         
@@ -194,10 +234,15 @@ $usingCachedPassword = $false
 if ($password) {
     Write-Host "✓ Found cached password for: admin" -ForegroundColor Green
     $usingCachedPassword = $true
+    # Convert SecureString to plain text for API use
+    $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+    Write-Host "DEBUG: Using cached password (converted): '$plainPassword' (Length: $($plainPassword.Length))" -ForegroundColor Magenta
+    $password = $plainPassword
 } else {
     Write-Host "[INFO] No cached password found. Please enter password." -ForegroundColor Yellow
     $securePassword = Read-Host "Enter password for admin" -AsSecureString
     $password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+    Write-Host "DEBUG: Using manually entered password: '$password' (Length: $($password.Length))" -ForegroundColor Magenta
 }
 
 # Query IP with retries
@@ -286,6 +331,9 @@ if ($ipAddresses -and $ipAddresses.Count -gt 0) {
     Write-Host "   SSH: ssh Administrator@$primaryIP" -ForegroundColor White
     Write-Host "   PowerShell: Enter-PSSession -ComputerName $primaryIP -Credential Administrator" -ForegroundColor White
     
+    # Return the primary IP address for the calling script
+    return $primaryIP
+    
 } else {
     Write-Host "⏳ VM IP ADDRESS NOT AVAILABLE YET" -ForegroundColor Yellow
     Write-Host "   VM Name: $targetVMName" -ForegroundColor White
@@ -297,8 +345,11 @@ if ($ipAddresses -and $ipAddresses.Count -gt 0) {
     Write-Host "   • Windows updates are running" -ForegroundColor Gray
     Write-Host "`n   Try again in a few minutes or check Prism Central web interface." -ForegroundColor White
     Write-Host "`n💻 Manual Check Options:" -ForegroundColor Cyan
-    Write-Host "   • Web: https://10.38.2.137:9440 → VMs → HARDEV-1021" -ForegroundColor Gray
+    Write-Host "   • Web: https://$(Get-PrismCentralIP):9440 → VMs → HARDEV-1021" -ForegroundColor Gray
     Write-Host "   • CLI: ncli vm list name=$targetVMName" -ForegroundColor Gray
+    
+    # Return null to indicate no IP found
+    return $null
 }
 
 Write-Host ("=" * 60)

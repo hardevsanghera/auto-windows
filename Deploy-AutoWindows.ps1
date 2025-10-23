@@ -183,6 +183,37 @@ function Write-Banner {
 
 #region Configuration Functions
 
+function Get-PrismCentralIP {
+    <#
+    .SYNOPSIS
+    Get Prism Central IP address from configuration
+    
+    .PARAMETER ConfigPath
+    Path to deployment configuration file
+    
+    .OUTPUTS
+    Returns Prism Central IP address
+    #>
+    param(
+        [string]$ConfigPath = "config\deployment-config.json"
+    )
+    
+    try {
+        if (Test-Path $ConfigPath) {
+            $config = Get-Content $ConfigPath | ConvertFrom-Json
+            return $config.prismCentral.ip
+        }
+        else {
+            Write-Warning "Configuration file not found: $ConfigPath"
+            return "10.38.10.138"  # Fallback default
+        }
+    }
+    catch {
+        Write-Warning "Failed to read Prism Central IP from config: $($_.Exception.Message)"
+        return "10.38.10.138"  # Fallback default
+    }
+}
+
 function Initialize-Environment {
     Write-Log "Initializing Auto-Windows environment..." -Level "INFO"
     
@@ -298,6 +329,140 @@ function Read-GlobalSettings {
 
 #region Phase Execution Functions
 
+function Get-VMIPAddressFromDeployment {
+    param(
+        [string]$VMUUID,
+        [string]$VMName,
+        [int]$MaxWaitMinutes = 5,
+        [int]$RetryIntervalSeconds = 30
+    )
+    
+    Write-Log "Starting IP discovery for VM: $VMName (UUID: $VMUUID)" -Level "INFO"
+    
+    $maxAttempts = [math]::Ceiling($MaxWaitMinutes * 60 / $RetryIntervalSeconds)
+    $attempt = 1
+    
+    do {
+        Write-Log "IP Discovery Attempt $attempt/$maxAttempts" -Level "INFO"
+        
+        try {
+            # Use our enhanced Get-VMIPAddress script
+            $ipScript = Join-Path $Script:ScriptRoot "Get-VMIPAddress.ps1"
+            if (Test-Path $ipScript) {
+                $ipResult = & $ipScript -VMUUID $VMUUID -MaxRetries 2 -RetryDelay 10
+                
+                Write-Log "Raw output from Get-VMIPAddress.ps1: $($ipResult -join "`n")" -Level "DEBUG"
+                
+                if ($ipResult) {
+                    # Parse IP from result using our enhanced parsing
+                    $discoveredIP = Parse-IPFromOutput -Output @($ipResult)
+                    if ($discoveredIP) {
+                        Write-Log "Successfully discovered VM IP: $discoveredIP" -Level "SUCCESS"
+                        return $discoveredIP
+                    } else {
+                        Write-Log "Failed to parse IP from Get-VMIPAddress.ps1 output" -Level "WARN"
+                    }
+                } else {
+                    Write-Log "No output received from Get-VMIPAddress.ps1" -Level "WARN"
+                }
+            }
+            
+            # If script method fails, try direct API call as backup
+            Write-Log "Trying direct API fallback for IP discovery..." -Level "INFO"
+            $directIP = Get-VMIPDirectAPI -VMUUID $VMUUID
+            if ($directIP) {
+                Write-Log "Direct API discovered VM IP: $directIP" -Level "SUCCESS"
+                return $directIP
+            }
+            
+        } catch {
+            Write-Log "Error in IP discovery attempt $attempt : $($_.Exception.Message)" -Level "WARN"
+        }
+        
+        if ($attempt -lt $maxAttempts) {
+            Write-Log "No IP found yet. Waiting $RetryIntervalSeconds seconds before retry..." -Level "INFO"
+            Start-Sleep -Seconds $RetryIntervalSeconds
+        }
+        
+        $attempt++
+        
+    } while ($attempt -le $maxAttempts)
+    
+    Write-Log "Failed to discover VM IP address after $maxAttempts attempts" -Level "ERROR"
+    return $null
+}
+
+function Test-VMReadinessAfterDeployment {
+    param([object]$VMResult)
+    
+    try {
+        Write-Log "Discovering VM IP address for readiness testing..." -Level "INFO"
+        
+        # Use our enhanced IP discovery mechanism
+        $vmIPAddress = Get-VMIPAddressFromDeployment -VMUUID $VMResult.VMUUID -VMName $VMResult.VMName -MaxWaitMinutes 5
+        
+        if (-not $vmIPAddress) {
+            Write-Log "Could not discover VM IP address for readiness testing" -Level "WARN"
+            return @{ Success = $false; Message = "IP discovery failed" }
+        }
+        
+        Write-Log "VM IP Address discovered: $vmIPAddress" -Level "INFO"
+        
+        # Wait 5 minutes for VM to fully boot and initialize before readiness testing
+        Write-Log "Waiting 5 minutes for VM to fully boot and initialize before readiness testing..." -Level "INFO"
+        Write-Log "This ensures Windows services, network stack, and remote management components are fully started" -Level "INFO"
+        
+        $waitMinutes = 5
+        $waitSeconds = $waitMinutes * 60
+        for ($i = 1; $i -le $waitSeconds; $i++) {
+            $remaining = $waitSeconds - $i
+            $remainingMinutes = [math]::Floor($remaining / 60)
+            $remainingSecondsDisplay = $remaining % 60
+            
+            if ($i % 30 -eq 0 -or $remaining -le 60) {
+                Write-Log "VM boot wait: ${remainingMinutes}:$($remainingSecondsDisplay.ToString('D2')) remaining..." -Level "INFO"
+            }
+            
+            Start-Sleep -Seconds 1
+        }
+        
+        Write-Log "VM boot wait completed - proceeding with readiness testing" -Level "SUCCESS"
+        
+        # Run Test-VMReadiness.ps1 with AddToTrusted parameter
+        $testReadinessScript = Join-Path $Script:ScriptRoot "Test-VMReadiness.ps1"
+        if (-not (Test-Path $testReadinessScript)) {
+            Write-Log "Test-VMReadiness.ps1 not found at: $testReadinessScript" -Level "WARN"
+            return @{ Success = $false; Message = "Test script not found"; IPAddress = $vmIPAddress }
+        }
+        
+        Write-Log "Running VM readiness test with trusted hosts configuration..." -Level "INFO"
+        
+        # Execute Test-VMReadiness.ps1 with AddToTrusted parameter
+        $readinessResult = & $testReadinessScript -VMIPAddress $vmIPAddress -AddToTrusted -TestLevel "Standard"
+        
+        if ($readinessResult -and $readinessResult.OverallResult -eq "PASS") {
+            Write-Log "VM readiness test passed successfully" -Level "SUCCESS"
+            return @{ 
+                Success = $true; 
+                IPAddress = $vmIPAddress; 
+                ReadinessResult = $readinessResult 
+            }
+        } else {
+            Write-Log "VM readiness test failed or incomplete" -Level "WARN"
+            return @{ 
+                Success = $false; 
+                Message = "Readiness test failed"; 
+                IPAddress = $vmIPAddress;
+                ReadinessResult = $readinessResult
+            }
+        }
+        
+    } catch {
+        Write-Log "Error during VM readiness testing: $($_.Exception.Message)" -Level "ERROR"
+        return @{ Success = $false; Message = $_.Exception.Message }
+    }
+}
+
 function Invoke-Phase1 {
     Write-Banner "PHASE 1: Windows VM Deployment" "Green"
     
@@ -331,6 +496,18 @@ function Invoke-Phase1 {
             $Script:ExecutionResults.Phase1.Results = $result
             Write-Log "Phase 1 completed successfully!" -Level "SUCCESS"
             Write-Log "VM UUID: $($result.VMUUID)" -Level "SUCCESS"
+            
+            # Test VM readiness as final Phase 1 step
+            Write-Log "Testing VM readiness and adding to trusted hosts..." -Level "INFO"
+            $vmReadinessResult = Test-VMReadinessAfterDeployment -VMResult $result
+            if ($vmReadinessResult.Success) {
+                Write-Log "VM readiness test passed - VM is ready for Phase 2" -Level "SUCCESS"
+                Write-Log "VM IP Address: $($vmReadinessResult.IPAddress)" -Level "SUCCESS"
+                $result.IPAddress = $vmReadinessResult.IPAddress
+            } else {
+                Write-Log "VM readiness test failed, but Phase 1 deployment was successful" -Level "WARN"
+            }
+            
             return $result
         }
         else {
@@ -354,8 +531,8 @@ function Invoke-Phase2 {
         
         # Get VM IP address from Phase 1 results or discover it
         $vmIPAddress = $null
-        if ($Phase1Results -and $Phase1Results.VMIPAddress) {
-            $vmIPAddress = $Phase1Results.VMIPAddress
+        if ($Phase1Results -and $Phase1Results.IPAddress) {
+            $vmIPAddress = $Phase1Results.IPAddress
             Write-Log "Using VM IP from Phase 1 results: $vmIPAddress" -Level "INFO"
         } elseif ($Phase1Results -and $Phase1Results.VMUUID) {
             # Phase 1 completed but no IP yet - wait and discover it
@@ -468,90 +645,30 @@ function Wait-ForVMIPAddress {
         try {
             $ipScript = Join-Path $Script:ScriptRoot "Get-VMIPAddress.ps1"
             if (Test-Path $ipScript) {
-                # Create isolated password environment for IP discovery
-                Write-Log "Starting IP discovery attempt $attempt with isolated credentials..." -Level "INFO"
+                # Run IP discovery directly (not in background job to allow user interaction)
+                Write-Log "Starting IP discovery attempt $attempt..." -Level "INFO"
                 
-                # Pre-verify admin password exists and is valid
-                $adminPassword = & (Join-Path $Script:ScriptRoot "PasswordManager.ps1") -Action Get -Username admin 2>$null
-                if (-not $adminPassword -or $adminPassword -eq "No password found") {
-                    Write-Log "Password cache corrupted - will use manual entry for this attempt" -Level "WARN"
-                }
-                
-                # Run IP discovery with timeout and error capture
-                $ipDiscoveryJob = Start-Job -ScriptBlock {
-                    param($ScriptPath, $VMUUID)
-                    & $ScriptPath -VMUUID $VMUUID -MaxRetries 1 -RetryDelay 5 2>&1
-                } -ArgumentList $ipScript, $VMUUID
-                
-                # Wait for job completion with timeout
-                $jobResult = Wait-Job $ipDiscoveryJob -Timeout 120
-                
-                if ($jobResult) {
-                    $ipResult = Receive-Job $ipDiscoveryJob
-                    Remove-Job $ipDiscoveryJob -Force
-                } else {
-                    Write-Log "IP discovery timed out after 120 seconds" -Level "WARN"
-                    Remove-Job $ipDiscoveryJob -Force
-                    $ipResult = @("Timeout - no response from IP discovery script")
-                }
-                
-                # Check for API connectivity issues
-                $apiError = $ipResult | Where-Object { $_ -match "connection.*failed|timeout|Failed to query VM" }
-                if ($apiError) {
-                    Write-Log "API connectivity issue detected: Prism Central may be unreachable" -Level "WARN"
+                try {
+                    # Run the script directly and capture output
+                    $ipResult = & $ipScript -VMUUID $VMUUID -MaxRetries 1 -RetryDelay 5
                     
-                    if ($attempt -eq 1) {
-                        Write-Log "This may be due to:" -Level "INFO"
-                        Write-Log "  - Network connectivity issues to Prism Central" -Level "INFO"
-                        Write-Log "  - Prism Central maintenance or restart" -Level "INFO"  
-                        Write-Log "  - Firewall blocking port 9440" -Level "INFO"
-                        Write-Log "Alternative: Check VM in Prism Central web interface" -Level "INFO"
-                    }
-                }
-                
-                # Debug: Show raw output
-                Write-Log "Raw output from Get-VMIPAddress.ps1:" -Level "DEBUG"
-                foreach ($line in $ipResult) {
-                    Write-Log "  '$line'" -Level "DEBUG"
-                }
-                
-                # Parse the output for IP address
-                $ipAddress = Parse-IPFromOutput -Output $ipResult
-                
-                # Enhanced debugging - show what patterns we're trying to match
-                if (-not $ipAddress) {
-                    Write-Log "Detailed pattern matching debug:" -Level "DEBUG"
+                    # Debug: Show raw output
+                    Write-Log "Raw output from Get-VMIPAddress.ps1:" -Level "DEBUG"
                     foreach ($line in $ipResult) {
-                        if ($line -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}") {
-                            Write-Log "  Line with IP pattern: '$line'" -Level "DEBUG"
-                            # Try all patterns manually for debugging
-                            if ($line -match "IP Address:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
-                                $ipAddress = $matches[1]
-                                Write-Log "  Matched basic IP Address pattern: $ipAddress" -Level "DEBUG"
-                                break
-                            }
-                        }
-                    }
-                }
-                
-                if ($ipAddress) {
-                    Write-Log "VM IP address discovered: $ipAddress" -Level "SUCCESS"
-                    return $ipAddress
-                } else {
-                    Write-Log "Standard IP discovery failed, trying direct API approach..." -Level "WARN"
-                    
-                    # Emergency fallback - direct API call
-                    if ($attempt -eq $maxAttempts) {
-                        Write-Log "Final attempt: Using direct Prism Central API call" -Level "INFO"
-                        $directIP = Get-VMIPDirectAPI -VMUUID $VMUUID
-                        if ($directIP) {
-                            Write-Log "Direct API call successful: $directIP" -Level "SUCCESS"
-                            return $directIP
-                        }
+                        Write-Log "  '$line'" -Level "DEBUG"
                     }
                     
-                    Write-Log "No IP address found in attempt $attempt" -Level "DEBUG"
-                    Write-Log "Total output lines: $($ipResult.Count)" -Level "DEBUG"
+                    # Parse the output for IP address
+                    $ipAddress = Parse-IPFromOutput -Output $ipResult
+                    
+                    if ($ipAddress) {
+                        Write-Log "VM IP address discovered: $ipAddress" -Level "SUCCESS"
+                        return $ipAddress
+                    } else {
+                        Write-Log "No IP address found in attempt $attempt" -Level "DEBUG"
+                    }
+                } catch {
+                    Write-Log "Error during IP discovery: $($_.Exception.Message)" -Level "WARN"
                 }
             }
             
@@ -578,7 +695,7 @@ function Wait-ForVMIPAddress {
     
     if (!$NonInteractive) {
         Write-Log "You can find the VM IP address by:" -Level "INFO"
-        Write-Log "  1. Opening Prism Central: https://10.38.2.137:9440" -Level "INFO"
+        Write-Log "  1. Opening Prism Central: https://$(Get-PrismCentralIP):9440" -Level "INFO"
         Write-Log "  2. Going to VMs → $VMName → Network tab" -Level "INFO"
         Write-Log "  3. Checking the VM console for network configuration" -Level "INFO"
         Write-Log "  4. Using ping or network scanning tools" -Level "INFO"
@@ -652,10 +769,16 @@ function Get-VMIPDirectAPI {
     try {
         Write-Log "Attempting direct Prism Central API call for VM: $VMUUID" -Level "INFO"
         
-        # Get cached admin password
-        $adminPassword = & (Join-Path $Script:ScriptRoot "PasswordManager.ps1") -Action Get -Username admin 2>$null
-        if (-not $adminPassword -or $adminPassword -eq "No password found") {
-            Write-Log "No cached password available for direct API call" -Level "WARN"
+        # Get cached admin password using proper function call
+        try {
+            Import-Module (Join-Path $Script:ScriptRoot "PasswordManager.ps1") -Force
+            $adminPassword = Get-CachedPassword -Username "admin"
+            if (-not $adminPassword -or $adminPassword -eq "No password found") {
+                Write-Log "No cached password available for direct API call" -Level "WARN"
+                return $null
+            }
+        } catch {
+            Write-Log "Failed to get cached password: $($_.Exception.Message)" -Level "WARN"
             return $null
         }
         
@@ -667,7 +790,7 @@ function Get-VMIPDirectAPI {
             "Accept" = "application/json"
         }
         
-        $uri = "https://10.38.2.137:9440/api/nutanix/v3/vms/$VMUUID"
+        $uri = "https://$(Get-PrismCentralIP):9440/api/nutanix/v3/vms/$VMUUID"
         $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get -SkipCertificateCheck -TimeoutSec 30
         
         # Extract IP from response

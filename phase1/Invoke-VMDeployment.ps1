@@ -111,10 +111,21 @@ function Invoke-InteractiveDeployment {
     $adminPassword = Get-AdminPassword -Config $Config
     
     # Get Prism Central password using password manager
-    $pcPassword = & (Join-Path $PSScriptRoot "..\PasswordManager.ps1") -Action Get -Username $Config.prismCentral.username
-    if (-not $pcPassword -or $pcPassword -eq "No password found") {
-        Write-Host "Prism Central Password:" -ForegroundColor Cyan
-        $pcPassword = & (Join-Path $PSScriptRoot "..\PasswordManager.ps1") -Action Set -Username $Config.prismCentral.username
+    try {
+        Import-Module (Join-Path $PSScriptRoot "..\PasswordManager.ps1") -Force
+        $securePassword = Get-CachedPassword -Username $Config.prismCentral.username
+        if ($securePassword) {
+            $pcPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+            Write-Host "✓ Using cached Prism Central password" -ForegroundColor Green
+        } else {
+            Write-Host "Prism Central Password:" -ForegroundColor Cyan
+            $securePassword = Set-CachedPassword -Username $Config.prismCentral.username
+            $pcPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+        }
+    } catch {
+        Write-Host "⚠️  Password manager failed, using manual entry: $($_.Exception.Message)" -ForegroundColor Yellow
+        $securePassword = Read-Host "Enter Prism Central password for $($Config.prismCentral.username)" -AsSecureString
+        $pcPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
     }
     
     # Create automation input file for VM deployment
@@ -370,15 +381,28 @@ function Get-AdminPassword {
 
     # Use password manager for VM admin password
     Write-Host "VM Administrator Password:" -ForegroundColor Cyan
+    Write-Host "Set the Administrator password for the new Windows VM" -ForegroundColor Gray
     $passwordManagerPath = Join-Path $PSScriptRoot "..\PasswordManager.ps1"
-    $plainPassword = & $passwordManagerPath -Action Get -Username "vm-administrator"
     
-    if ($plainPassword -and $plainPassword -ne "No password found") {
-        return $plainPassword
+    # Import the password manager module and check for cached VM admin password
+    try {
+        Import-Module $passwordManagerPath -Force
+        $securePassword = Get-CachedPassword -Username "vm-administrator"
+        
+        if ($securePassword) {
+            # Convert SecureString to plain text
+            $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+            Write-Host "✓ Using cached VM Administrator password" -ForegroundColor Green
+            return $plainPassword
+        }
+        else {
+            Write-Host "ℹ️  No cached VM Administrator password found - will prompt for new password" -ForegroundColor Cyan
+        }
     }
-    
-    # Fallback to manual prompt if password manager fails
-    Write-Host "⚠️  Password manager unavailable, using manual entry" -ForegroundColor Yellow
+    catch {
+        Write-Host "⚠️  Password manager error: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "ℹ️  Continuing with manual password entry" -ForegroundColor Cyan
+    }
     do {
         $password = Read-Host "Enter Administrator password (minimum 4 characters)" -AsSecureString
         $confirmPassword = Read-Host "Confirm Administrator password" -AsSecureString
@@ -395,6 +419,18 @@ function Get-AdminPassword {
         if ($pwd1 -ne $pwd2) {
             Write-Host "Passwords do not match. Please try again." -ForegroundColor Red
             continue
+        }
+        
+        # Offer to cache the VM administrator password for future use
+        $cachePassword = Read-Host "Cache this VM Administrator password for future deployments? (Y/n)"
+        if ($cachePassword -notmatch "^[Nn]") {
+            try {
+                $secureVMPassword = ConvertTo-SecureString $pwd1 -AsPlainText -Force
+                Set-CachedPassword -Username "vm-administrator" -SecurePassword $secureVMPassword | Out-Null
+                Write-Host "✓ VM Administrator password cached for future use" -ForegroundColor Green
+            } catch {
+                Write-Host "⚠️  Failed to cache password: $($_.Exception.Message)" -ForegroundColor Yellow
+            }
         }
         
         return $pwd1

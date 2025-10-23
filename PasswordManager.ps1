@@ -85,11 +85,13 @@ function Get-CachedPassword {
         $cacheFile = Get-PasswordCacheFile
         
         if (-not (Test-Path $cacheFile)) {
+            Write-Host "DEBUG: Cache file does not exist: $cacheFile" -ForegroundColor Magenta
             return $null
         }
         
         # Import credential store from file
         $credentialStore = Import-Clixml -Path $cacheFile
+        Write-Host "DEBUG: Successfully imported credential store from cache file" -ForegroundColor Magenta
         
         # Check if this is the old single-credential format
         if ($credentialStore -is [System.Management.Automation.PSCredential]) {
@@ -100,12 +102,19 @@ function Get-CachedPassword {
             
             # Save in new format
             $credentialStore | Export-Clixml -Path $cacheFile -Force
+            Write-Host "DEBUG: Converted old credential format to new format" -ForegroundColor Magenta
         }
         
         # Look up the specific username
         if ($credentialStore.ContainsKey($Username)) {
             Write-Host "✓ Using cached password for: $Username" -ForegroundColor Green
-            return $credentialStore[$Username].Password
+            $retrievedPassword = $credentialStore[$Username].Password
+            
+            # DEBUG: Show password details
+            $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($retrievedPassword))
+            Write-Host "DEBUG: Retrieved password for '$Username': '$plainPassword' (Length: $($plainPassword.Length))" -ForegroundColor Magenta
+            
+            return $retrievedPassword
         }
         else {
             # List available cached users for debugging
@@ -114,11 +123,13 @@ function Get-CachedPassword {
             if ($cachedUsers) {
                 Write-Host "   Available cached users: $cachedUsers" -ForegroundColor Gray
             }
+            Write-Host "DEBUG: Username '$Username' not found in cache keys: [$cachedUsers]" -ForegroundColor Magenta
             return $null
         }
     }
     catch {
         Write-Host "⚠️  Failed to retrieve cached password: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "DEBUG: Exception details: $($_.Exception)" -ForegroundColor Magenta
         return $null
     }
 }
@@ -213,11 +224,19 @@ function Get-AdminPassword {
         [switch]$SaveToCache
     )
     
+    Write-Host "DEBUG: Get-AdminPassword called for username: '$Username'" -ForegroundColor Magenta
+    Write-Host "DEBUG: UseCache: $UseCache, SaveToCache: $SaveToCache" -ForegroundColor Magenta
+    
     # Try to get cached password first (default behavior)
     if (-not $UseCache.IsPresent -or $UseCache) {
+        Write-Host "DEBUG: Attempting to get cached password..." -ForegroundColor Magenta
         $cachedPassword = Get-CachedPassword -Username $Username
         if ($cachedPassword) {
+            $plainCached = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($cachedPassword))
+            Write-Host "DEBUG: Found cached password for '$Username': '$plainCached' (Length: $($plainCached.Length))" -ForegroundColor Magenta
             return $cachedPassword
+        } else {
+            Write-Host "DEBUG: No cached password found for '$Username'" -ForegroundColor Magenta
         }
     }
     
@@ -227,6 +246,7 @@ function Get-AdminPassword {
     
     # Validate password is not empty
     $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+    Write-Host "DEBUG: Entered password for '$Username': '$plainPassword' (Length: $($plainPassword.Length))" -ForegroundColor Magenta
     if ([string]::IsNullOrEmpty($plainPassword)) {
         Write-Host "❌ Password cannot be empty" -ForegroundColor Red
         return $null
@@ -234,6 +254,7 @@ function Get-AdminPassword {
     
     # Save to cache by default
     if (-not $SaveToCache.IsPresent -or $SaveToCache) {
+        Write-Host "DEBUG: Saving password to cache..." -ForegroundColor Magenta
         Save-CachedPassword -Username $Username -Password $password | Out-Null
     }
     
@@ -253,7 +274,9 @@ function ConvertTo-PlainText {
         [SecureString]$SecurePassword
     )
     
-    return [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePassword))
+    $plainText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePassword))
+    Write-Host "DEBUG: ConvertTo-PlainText result: '$plainText' (Length: $($plainText.Length))" -ForegroundColor Magenta
+    return $plainText
 }
 
 function Show-PasswordCacheStatus {
@@ -293,6 +316,6 @@ function Show-PasswordCacheStatus {
         }
     }
     else {
-        Write-Host "ℹ️  No passwords currently cached" -ForegroundColor Cyan
+        Write-Host "INFO: No passwords currently cached" -ForegroundColor Cyan
     }
 }
