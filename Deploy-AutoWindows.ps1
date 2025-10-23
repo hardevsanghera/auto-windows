@@ -393,17 +393,24 @@ function Invoke-Phase2 {
         Write-Log "Starting Phase 2 API environment setup..." -Level "INFO"
         Write-Log "Target VM: $vmIPAddress" -Level "INFO"
         Write-Log "Using HTTPS connection for security" -Level "INFO"
+        Write-Log "Note: VM readiness testing will ensure all remote management requirements are properly configured" -Level "INFO"
         
-        # Test VM readiness first
+        # Test VM readiness and ensure all remote management requirements are installed
         $readinessScript = Join-Path $Script:ScriptRoot "Test-VMReadiness.ps1"
         if (Test-Path $readinessScript) {
-            Write-Log "Testing VM readiness before Phase 2..." -Level "INFO"
+            Write-Log "Testing VM readiness and configuring remote management requirements..." -Level "INFO"
+            Write-Log "This step ensures PowerShell remoting, WinRM, and all dependencies are properly configured" -Level "INFO"
             try {
-                & $readinessScript -VMIPAddress $vmIPAddress -AddToTrusted -TestLevel "Basic"
-                Write-Log "VM readiness test completed" -Level "INFO"
+                & $readinessScript -VMIPAddress $vmIPAddress -AddToTrusted -TestLevel "Full"
+                Write-Log "VM readiness test completed successfully - all remote management requirements are configured" -Level "SUCCESS"
             } catch {
-                Write-Log "VM readiness test failed, but continuing: $($_.Exception.Message)" -Level "WARN"
+                Write-Log "VM readiness test failed: $($_.Exception.Message)" -Level "ERROR"
+                Write-Log "Remote management configuration is required before Phase 2 can proceed" -Level "ERROR"
+                throw "VM readiness validation failed - cannot proceed to Phase 2 without proper remote management setup"
             }
+        } else {
+            Write-Log "Test-VMReadiness.ps1 script not found - skipping VM readiness validation" -Level "WARN"
+            Write-Log "Manual verification of PowerShell remoting and WinRM configuration may be required" -Level "WARN"
         }
         
         # Execute Phase 2 API environment setup
@@ -457,12 +464,34 @@ function Wait-ForVMIPAddress {
                 # Run the script and capture output
                 $ipResult = & $ipScript -VMUUID $VMUUID -MaxRetries 1 -RetryDelay 5 2>&1
                 
+                # Check for API connectivity issues
+                $apiError = $ipResult | Where-Object { $_ -match "connection.*failed|timeout|Failed to query VM" }
+                if ($apiError) {
+                    Write-Log "API connectivity issue detected: Prism Central may be unreachable" -Level "WARN"
+                    
+                    if ($attempt -eq 1) {
+                        Write-Log "This may be due to:" -Level "INFO"
+                        Write-Log "  - Network connectivity issues to Prism Central" -Level "INFO"
+                        Write-Log "  - Prism Central maintenance or restart" -Level "INFO"  
+                        Write-Log "  - Firewall blocking port 9440" -Level "INFO"
+                        Write-Log "Alternative: Check VM in Prism Central web interface" -Level "INFO"
+                    }
+                }
+                
+                # Debug: Show raw output
+                Write-Log "Raw output from Get-VMIPAddress.ps1:" -Level "DEBUG"
+                foreach ($line in $ipResult) {
+                    Write-Log "  '$line'" -Level "DEBUG"
+                }
+                
                 # Parse the output for IP address
                 $ipAddress = Parse-IPFromOutput -Output $ipResult
                 
                 if ($ipAddress) {
                     Write-Log "VM IP address discovered: $ipAddress" -Level "SUCCESS"
                     return $ipAddress
+                } else {
+                    Write-Log "No IP address parsed from output" -Level "DEBUG"
                 }
             }
             
@@ -488,9 +517,22 @@ function Wait-ForVMIPAddress {
     Write-Log "This is normal for Windows VMs which can take 10-15 minutes to fully boot" -Level "INFO"
     
     if (!$NonInteractive) {
+        Write-Log "You can find the VM IP address by:" -Level "INFO"
+        Write-Log "  1. Opening Prism Central: https://10.38.2.137:9440" -Level "INFO"
+        Write-Log "  2. Going to VMs → $VMName → Network tab" -Level "INFO"
+        Write-Log "  3. Checking the VM console for network configuration" -Level "INFO"
+        Write-Log "  4. Using ping or network scanning tools" -Level "INFO"
+        
         $manualIP = Read-Host "Enter the VM IP address manually (or press Enter to continue waiting)"
         if ($manualIP) {
-            return $manualIP
+            # Validate IP format
+            if ($manualIP -match "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$") {
+                Write-Log "Using manually entered IP: $manualIP" -Level "SUCCESS"
+                return $manualIP
+            } else {
+                Write-Log "Invalid IP format entered: $manualIP" -Level "WARN"
+                Write-Log "Expected format: x.x.x.x (e.g., 10.38.19.214)" -Level "INFO"
+            }
         }
         
         # Extended wait if user chooses
@@ -508,11 +550,20 @@ function Parse-IPFromOutput {
     
     # Look for IP address pattern in output
     foreach ($line in $Output) {
-        if ($line -match "IP Address: (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
+        # Handle output with leading spaces: "   IP Address: x.x.x.x"
+        if ($line -match "\s*IP Address:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
             return $matches[1]
         }
         # Also check for primary IP pattern
-        if ($line -match "Primary IP: (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
+        if ($line -match "\s*Primary IP:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})") {
+            return $matches[1]
+        }
+        # Handle direct IP pattern without label
+        if ($line -match "^\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*$") {
+            return $matches[1]
+        }
+        # Handle the specific format from Get-VMIPAddress.ps1: "  IP Address: x.x.x.x (Type: LEARNED)"
+        if ($line -match "IP Address:\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*\(Type:") {
             return $matches[1]
         }
     }

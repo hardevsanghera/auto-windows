@@ -5,7 +5,8 @@
 
 .DESCRIPTION
     Queries the Nutanix Prism Central API to get the IP address of the most recently deployed VM.
-    Uses the cached admin password if available.
+         Write-Host "[INFO] Opening Prism Central web interface for manual VM check..." -ForegroundColor Cyan
+        Start-Process "https://10.38.2.137:9440" Uses the cached admin password if available.
 
 .PARAMETER VMName
     Specific VM name to query (optional - defaults to latest deployed VM)
@@ -43,7 +44,7 @@ Import-Module (Join-Path $scriptRoot "PasswordManager.ps1") -Force
 
 function Get-VMIPFromPrismCentral {
     param(
-        [string]$PCHost = "10.38.19.9",
+        [string]$PCHost = "10.38.2.137",
         [string]$Username = "admin",
         [string]$Password,
         [string]$VMUUID
@@ -108,7 +109,11 @@ function Get-VMIPFromPrismCentral {
             }
         }
         
-        return $ipAddresses
+        # Return both IP addresses and VM name
+        return @{
+            IPAddresses = $ipAddresses
+            VMName = $vmName
+        }
         
     } catch {
         $errorResponse = $_.ErrorDetails.Message
@@ -203,7 +208,16 @@ $authRetried = $false
 do {
     Write-Host "`n[ATTEMPT $attempt/$MaxRetries] Checking for IP address..." -ForegroundColor Cyan
     
-    $ipAddresses = Get-VMIPFromPrismCentral -VMUUID $targetVMUUID -Password $password
+    $result = Get-VMIPFromPrismCentral -VMUUID $targetVMUUID -Password $password
+    
+    if ($result -and $result.IPAddresses) {
+        $ipAddresses = $result.IPAddresses
+        if ($result.VMName -and -not $targetVMName) {
+            $targetVMName = $result.VMName
+        }
+    } else {
+        $ipAddresses = $null
+    }
     
     # Check if user is locked out
     if ($ipAddresses -eq "LOCKED") {
@@ -227,7 +241,16 @@ do {
         
         # Try again with manual password
         Write-Host "[INFO] Retrying with manual password..." -ForegroundColor Cyan
-        $ipAddresses = Get-VMIPFromPrismCentral -VMUUID $targetVMUUID -Password $password
+        $result = Get-VMIPFromPrismCentral -VMUUID $targetVMUUID -Password $password
+        
+        if ($result -and $result.IPAddresses) {
+            $ipAddresses = $result.IPAddresses
+            if ($result.VMName -and -not $targetVMName) {
+                $targetVMName = $result.VMName
+            }
+        } else {
+            $ipAddresses = $null
+        }
     }
     
     if ($ipAddresses -and $ipAddresses.Count -gt 0) {
@@ -274,7 +297,7 @@ if ($ipAddresses -and $ipAddresses.Count -gt 0) {
     Write-Host "   • Windows updates are running" -ForegroundColor Gray
     Write-Host "`n   Try again in a few minutes or check Prism Central web interface." -ForegroundColor White
     Write-Host "`n💻 Manual Check Options:" -ForegroundColor Cyan
-    Write-Host "   • Web: https://10.38.19.9:9440 → VMs → HARDEV-1021" -ForegroundColor Gray
+    Write-Host "   • Web: https://10.38.2.137:9440 → VMs → HARDEV-1021" -ForegroundColor Gray
     Write-Host "   • CLI: ncli vm list name=$targetVMName" -ForegroundColor Gray
 }
 
