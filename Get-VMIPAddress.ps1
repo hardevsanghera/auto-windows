@@ -157,24 +157,36 @@ function Get-VMIPFromPrismCentral {
         
     } catch {
         $errorResponse = $_.ErrorDetails.Message
-        Write-Host "[ERROR] Failed to query VM: $($_.Exception.Message)" -ForegroundColor Red
+        $statusCode = $_.Exception.Response.StatusCode
+        $errorMessage = $_.Exception.Message
         
-        if ($_.Exception.Response.StatusCode -eq 401) {
+        Write-Host "[ERROR] Failed to query VM: $errorMessage" -ForegroundColor Red
+        
+        if ($statusCode -eq 401) {
             if ($errorResponse -and $errorResponse.Contains("locked out")) {
                 Write-Host "[ERROR] User account is locked out. Please wait 5-10 minutes for automatic unlock." -ForegroundColor Red
                 Write-Host "[INFO] Alternatively, unlock the account in Prism Central or use a different user." -ForegroundColor Yellow
-                return "LOCKED"
+                return @{ IPAddresses = "LOCKED"; Error = "Account locked out"; StatusCode = 401 }
             } else {
                 Write-Host "[ERROR] Authentication failed. Please check your password." -ForegroundColor Red
+                return @{ IPAddresses = $null; Error = "Authentication failed"; StatusCode = 401 }
             }
-        } elseif ($_.Exception.Response.StatusCode -eq 404) {
+        } elseif ($statusCode -eq 404) {
             Write-Host "[ERROR] VM not found. Please check the VM UUID." -ForegroundColor Red
+            return @{ IPAddresses = $null; Error = "VM not found"; StatusCode = 404 }
         }
         
         if ($errorResponse) {
             Write-Host "[DEBUG] API Response: $errorResponse" -ForegroundColor Gray
         }
-        return $null
+        
+        # Return structured error information
+        return @{ 
+            IPAddresses = $null
+            Error = $errorMessage
+            StatusCode = $statusCode
+            Details = $errorResponse
+        }
     }
 }
 
@@ -265,7 +277,7 @@ do {
     }
     
     # Check if user is locked out
-    if ($ipAddresses -eq "LOCKED") {
+    if ($result -and $result.IPAddresses -eq "LOCKED") {
         Write-Host "`n[ERROR] Cannot proceed - admin account is locked out." -ForegroundColor Red
         Write-Host "[INFO] Please wait 5-10 minutes for automatic unlock, or:" -ForegroundColor Yellow
         Write-Host "  1. Use Prism Central web interface to unlock the account" -ForegroundColor Gray
@@ -278,23 +290,38 @@ do {
     
     # If authentication failed and we haven't retried auth yet
     if ($null -eq $ipAddresses -and $usingCachedPassword -and -not $authRetried) {
-        Write-Host "[WARN] Cached password may be incorrect. Please enter password manually." -ForegroundColor Yellow
-        $securePassword = Read-Host "Enter password for admin" -AsSecureString
-        $password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
-        $usingCachedPassword = $false
-        $authRetried = $true
+        # Check if this was an authentication failure vs network/API issue
+        $lastError = if ($result -and $result.Error) { $result.Error } else { "" }
+        $lastStatusCode = if ($result -and $result.StatusCode) { $result.StatusCode } else { 0 }
+        $isAuthError = ($lastStatusCode -eq 401) -or ($lastError -match "401|authentication|unauthorized|forbidden")
         
-        # Try again with manual password
-        Write-Host "[INFO] Retrying with manual password..." -ForegroundColor Cyan
-        $result = Get-VMIPFromPrismCentral -VMUUID $targetVMUUID -Password $password
-        
-        if ($result -and $result.IPAddresses) {
-            $ipAddresses = $result.IPAddresses
-            if ($result.VMName -and -not $targetVMName) {
-                $targetVMName = $result.VMName
+        if ($isAuthError) {
+            Write-Host "[WARN] Authentication failed with cached password. Requesting new password..." -ForegroundColor Yellow
+            # Clear the invalid cached password
+            Remove-CachedPassword -Username "admin"
+            
+            $securePassword = Read-Host "Enter password for admin" -AsSecureString
+            $password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+            $usingCachedPassword = $false
+            $authRetried = $true
+            
+            # Cache the new password for future use
+            Save-CachedPassword -Username "admin" -Password $securePassword
+            
+            # Try again with manual password
+            Write-Host "[INFO] Retrying with new password..." -ForegroundColor Cyan
+            $result = Get-VMIPFromPrismCentral -VMUUID $targetVMUUID -Password $password
+            
+            if ($result -and $result.IPAddresses) {
+                $ipAddresses = $result.IPAddresses
+                if ($result.VMName -and -not $targetVMName) {
+                    $targetVMName = $result.VMName
+                }
+            } else {
+                $ipAddresses = $null
             }
         } else {
-            $ipAddresses = $null
+            Write-Host "[INFO] Network or API issue detected (not authentication). Continuing with cached password..." -ForegroundColor Yellow
         }
     }
     

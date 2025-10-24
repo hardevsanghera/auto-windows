@@ -77,28 +77,8 @@ function Write-StepResult {
     }
 }
 
-function Get-VMCredentials {
-    Write-Host "`n🔐 Getting VM Credentials..." -ForegroundColor Cyan
-    
-    # Try to get cached VM administrator password
-    $vmPassword = Get-CachedPassword -Username "vm-administrator"
-    
-    if ($vmPassword) {
-        Write-Host "✓ Using cached password for: vm-administrator" -ForegroundColor Green
-        
-        # Handle both SecureString and plain text passwords
-        if ($vmPassword -is [System.Security.SecureString]) {
-            $securePassword = $vmPassword
-        } else {
-            $securePassword = ConvertTo-SecureString $vmPassword -AsPlainText -Force
-        }
-        
-        return New-Object System.Management.Automation.PSCredential("Administrator", $securePassword)
-    } else {
-        Write-Host "[INFO] No cached VM password found. Please enter credentials." -ForegroundColor Yellow
-        return Get-Credential -UserName "Administrator" -Message "Enter credentials for VM Administrator"
-    }
-}
+# Use centralized credential function from PasswordManager.ps1
+# Get-VMCredentials is now imported from PasswordManager.ps1
 
 function Test-VMConnectivity {
     param([string]$IPAddress, [System.Management.Automation.PSCredential]$Credential, [bool]$UseHTTPS)

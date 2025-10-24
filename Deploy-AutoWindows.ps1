@@ -43,10 +43,23 @@
 .PARAMETER DelPw
     Delete cached passwords and exit (use when you need to change credentials)
 
+.PARAMETER CachePasswords
+    Pre-cache all required passwords for automated deployment and exit
+
 .EXAMPLE
     .\Deploy-AutoWindows.ps1
     
     Run complete two-phase deployment with interactive prompts
+
+.EXAMPLE
+    .\Deploy-AutoWindows.ps1 -CachePasswords
+    
+    Pre-cache passwords for maximum automation, then exit
+
+.EXAMPLE
+    .\Deploy-AutoWindows.ps1 -NonInteractive
+    
+    Run deployment with minimal prompts using cached passwords
 
 .EXAMPLE
     .\Deploy-AutoWindows.ps1 -Phase 1 -NonInteractive
@@ -97,7 +110,10 @@ param(
     [switch]$NonInteractive,
     
     [Parameter(Mandatory = $false)]
-    [switch]$DelPw
+    [switch]$DelPw,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$CachePasswords
 )
 
 # Set error handling
@@ -130,6 +146,48 @@ if ($DelPw) {
     }
     
     Write-Host ""
+    exit 0
+}
+
+# Handle password pre-caching if requested
+if ($CachePasswords) {
+    Write-Host ""
+    Write-Host "🔐 Password Pre-Caching Setup" -ForegroundColor Cyan
+    Write-Host "==============================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "This will cache passwords for maximum automation during deployment." -ForegroundColor Yellow
+    Write-Host "You will only need to enter passwords once, and they will be securely cached." -ForegroundColor Yellow
+    Write-Host ""
+    
+    try {
+        # Cache Prism Central admin password
+        Write-Host "1. Caching Prism Central admin password..." -ForegroundColor Cyan
+        $adminPassword = Get-CachedPassword -Username "admin" -ForcePrompt
+        if ($adminPassword) {
+            Write-Host "✓ Admin password cached successfully" -ForegroundColor Green
+        }
+        
+        # Cache VM administrator password
+        Write-Host "`n2. Caching VM administrator password..." -ForegroundColor Cyan
+        $vmAdminPassword = Get-CachedPassword -Username "vm-administrator" -ForcePrompt
+        if ($vmAdminPassword) {
+            Write-Host "✓ VM administrator password cached successfully" -ForegroundColor Green
+        }
+        
+        Write-Host ""
+        Write-Host "🎉 Password caching complete!" -ForegroundColor Green
+        Write-Host "   You can now run deployments with minimal password prompts." -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Next steps:" -ForegroundColor Yellow
+        Write-Host "  • Run: .\Deploy-AutoWindows.ps1 -NonInteractive" -ForegroundColor White
+        Write-Host "  • Or:  .\Deploy-AutoWindows.ps1 (for normal deployment)" -ForegroundColor White
+        Write-Host ""
+        
+    } catch {
+        Write-Host ""
+        Write-Host "❌ Password caching failed: $($_.Exception.Message)" -ForegroundColor Red
+    }
+    
     exit 0
 }
 

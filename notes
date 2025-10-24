@@ -1,0 +1,13 @@
+For First-Time Setup (Maximum Automation):
+# 1. Pre-cache all passwords once
+.\Deploy-AutoWindows.ps1 -CachePasswords
+
+# 2. Run fully automated deployments
+.\Deploy-AutoWindows.ps1 -NonInteractive
+
+For Password Management:
+# Clear cached passwords (when credentials change)
+.\Deploy-AutoWindows.ps1 -DelPw
+
+# Re-cache new passwords
+.\Deploy-AutoWindows.ps1 -CachePasswords

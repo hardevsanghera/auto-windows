@@ -135,18 +135,39 @@ function Save-CachedPassword {
 function Get-CachedPassword {
     <#
     .SYNOPSIS
-    Retrieve cached password if available
+    Retrieve cached password if available, or prompt for new password
     
     .PARAMETER Username
     The username to retrieve password for
+    
+    .PARAMETER ForcePrompt
+    Force password prompt even if cached password exists
     
     .OUTPUTS
     SecureString password if found, $null if not found
     #>
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Username
+        [string]$Username,
+        
+        [Parameter(Mandatory = $false)]
+        [switch]$ForcePrompt
     )
+    
+    # Handle ForcePrompt - prompt for new password and cache it
+    if ($ForcePrompt) {
+        Write-Host "🔐 Enter password for user: $Username" -ForegroundColor Cyan
+        $securePassword = Read-Host "Password" -AsSecureString
+        
+        if ($securePassword -and $securePassword.Length -gt 0) {
+            # Cache the new password
+            Save-CachedPassword -Username $Username -Password $securePassword
+            return $securePassword
+        } else {
+            Write-Host "No password entered." -ForegroundColor Yellow
+            return $null
+        }
+    }
     
     try {
         $cacheFile = Get-PasswordCacheFile
@@ -411,4 +432,108 @@ function Show-PasswordCacheStatus {
     else {
         Write-Host "INFO: No passwords currently cached" -ForegroundColor Cyan
     }
+}
+
+function Get-VMCredentials {
+    <#
+    .SYNOPSIS
+    Get VM credentials with enhanced caching and validation
+    
+    .DESCRIPTION
+    Centralized function to get VM administrator credentials with smart caching,
+    cache validation, and consistent error handling across all scripts.
+    
+    .PARAMETER ForcePrompt
+    Force password prompt even if cached password exists
+    
+    .PARAMETER ValidateCredentials
+    Test credentials against the VM before returning them
+    
+    .PARAMETER VMIPAddress
+    IP address to test credentials against (required if ValidateCredentials is true)
+    #>
+    param(
+        [switch]$ForcePrompt,
+        [switch]$ValidateCredentials,
+        [string]$VMIPAddress
+    )
+    
+    Write-Host "`n🔐 Getting VM Credentials..." -ForegroundColor Cyan
+    
+    if (-not $ForcePrompt) {
+        # Try to get cached VM administrator password
+        $vmPassword = Get-CachedPassword -Username "vm-administrator"
+        
+        if ($vmPassword) {
+            Write-Host "✓ Using cached password for: vm-administrator" -ForegroundColor Green
+            
+            # Handle both SecureString and plain text passwords
+            if ($vmPassword -is [System.Security.SecureString]) {
+                $securePassword = $vmPassword
+            } else {
+                $securePassword = ConvertTo-SecureString $vmPassword -AsPlainText -Force
+            }
+            
+            $credential = New-Object System.Management.Automation.PSCredential("Administrator", $securePassword)
+            
+            # Validate credentials if requested
+            if ($ValidateCredentials -and $VMIPAddress) {
+                Write-Host "🔍 Validating cached credentials..." -ForegroundColor Yellow
+                if (Test-VMCredentials -Credential $credential -VMIPAddress $VMIPAddress) {
+                    Write-Host "✓ Cached credentials validated successfully" -ForegroundColor Green
+                    return $credential
+                } else {
+                    Write-Host "❌ Cached credentials failed validation, prompting for new password" -ForegroundColor Red
+                    # Remove invalid cached password
+                    Remove-CachedPassword -Username "vm-administrator"
+                }
+            } else {
+                return $credential
+            }
+        }
+    }
+    
+    # Prompt for new credentials
+    Write-Host "[INFO] Getting VM administrator credentials..." -ForegroundColor Yellow
+    $credential = Get-Credential -UserName "Administrator" -Message "Enter credentials for VM Administrator"
+    
+    if ($credential) {
+        # Cache the new password
+        Save-CachedPassword -Username "vm-administrator" -Password $credential.Password
+        Write-Host "✓ New password cached for future use" -ForegroundColor Green
+    }
+    
+    return $credential
+}
+
+function Test-VMCredentials {
+    <#
+    .SYNOPSIS
+    Test VM credentials by attempting a simple PowerShell connection
+    
+    .PARAMETER Credential
+    Credentials to test
+    
+    .PARAMETER VMIPAddress
+    VM IP address to test against
+    #>
+    param(
+        [System.Management.Automation.PSCredential]$Credential,
+        [string]$VMIPAddress
+    )
+    
+    try {
+        # Test with a simple WinRM connection
+        $testSession = New-PSSession -ComputerName $VMIPAddress -Credential $Credential -ErrorAction Stop
+        if ($testSession) {
+            Remove-PSSession $testSession -ErrorAction SilentlyContinue
+            return $true
+        }
+    }
+    catch {
+        Write-Debug "Credential validation failed: $($_.Exception.Message)"
+        return $false
+    }
+    
+    return $false
 }

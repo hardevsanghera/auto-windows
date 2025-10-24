@@ -616,6 +616,8 @@ function Test-Phase2Prerequisites {
     }
 }
 
+# Use centralized Get-VMCredentials function from PasswordManager.ps1
+<#
 function Get-VMCredentials {
     Write-Host "`n🔐 Getting VM Credentials..." -ForegroundColor Cyan
     
@@ -638,6 +640,7 @@ function Get-VMCredentials {
         return Get-Credential -UserName "Administrator" -Message "Enter credentials for VM Administrator"
     }
 }
+#>
 
 function Show-ReadinessSummary {
     param([hashtable]$Results)
@@ -689,7 +692,8 @@ if ($AddToTrusted) {
 
 # Get credentials if not provided
 if (-not $VMCredential) {
-    $VMCredential = Get-VMCredentials
+    # Use centralized credential function with validation
+    $VMCredential = Get-VMCredentials -ValidateCredentials -VMIPAddress $VMIPAddress
     if (-not $VMCredential) {
         Write-Host "❌ Cannot proceed without VM credentials." -ForegroundColor Red
         exit 1
