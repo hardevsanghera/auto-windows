@@ -4,13 +4,45 @@
 function Get-PasswordCacheFile {
     <#
     .SYNOPSIS
-    Get the path to the password cache file
+    Get the path to the password cache file with enhanced directory creation and validation
     #>
     $cacheDir = Join-Path $env:APPDATA "AutoWindows"
-    if (-not (Test-Path $cacheDir)) {
-        New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+    
+    # Enhanced cache directory creation with proper error handling
+    try {
+        if (-not (Test-Path $cacheDir)) {
+            Write-Host "DEBUG: Creating cache directory: $cacheDir" -ForegroundColor Magenta
+            New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+            
+            # Verify directory was created successfully
+            if (-not (Test-Path $cacheDir)) {
+                throw "Failed to create cache directory: $cacheDir"
+            }
+            
+            Write-Host "DEBUG: Cache directory created successfully" -ForegroundColor Green
+        } else {
+            Write-Host "DEBUG: Cache directory exists: $cacheDir" -ForegroundColor Cyan
+        }
+        
+        # Test write permissions
+        $testFile = Join-Path $cacheDir "test_permissions.tmp"
+        try {
+            "test" | Out-File -FilePath $testFile -Force
+            Remove-Item -Path $testFile -Force -ErrorAction SilentlyContinue
+            Write-Host "DEBUG: Cache directory write permissions verified" -ForegroundColor Green
+        } catch {
+            throw "No write permissions for cache directory: $cacheDir - $($_.Exception.Message)"
+        }
+        
+    } catch {
+        Write-Warning "Cache directory setup failed: $($_.Exception.Message)"
+        Write-Host "DEBUG: Falling back to temp directory for password cache" -ForegroundColor Yellow
+        $cacheDir = $env:TEMP
     }
-    return Join-Path $cacheDir "prism_credentials.dat"
+    
+    $cacheFile = Join-Path $cacheDir "prism_credentials.dat"
+    Write-Host "DEBUG: Using cache file: $cacheFile" -ForegroundColor Magenta
+    return $cacheFile
 }
 
 function Save-CachedPassword {
@@ -35,16 +67,37 @@ function Save-CachedPassword {
     try {
         $cacheFile = Get-PasswordCacheFile
         
+        # Enhanced cache file validation and corruption handling
+        Write-Host "DEBUG: Cache file path: $cacheFile" -ForegroundColor Magenta
+        Write-Host "DEBUG: Cache file exists: $(Test-Path $cacheFile)" -ForegroundColor Magenta
+        
         # Load existing credentials or create new collection
         $credentialStore = @{}
         if (Test-Path $cacheFile) {
             try {
+                Write-Host "DEBUG: Loading existing cache file" -ForegroundColor Cyan
                 $credentialStore = Import-Clixml -Path $cacheFile
+                
+                # Validate cache file structure
+                if ($credentialStore -isnot [hashtable]) {
+                    throw "Cache file contains invalid data structure"
+                }
+                
+                Write-Host "DEBUG: Cache file loaded successfully, contains $($credentialStore.Count) entries" -ForegroundColor Green
             }
             catch {
-                # If corrupted, start fresh
+                Write-Warning "Cache file corrupted or invalid: $($_.Exception.Message)"
+                Write-Host "DEBUG: Removing corrupted cache file: $cacheFile" -ForegroundColor Yellow
+                try {
+                    Remove-Item -Path $cacheFile -Force -ErrorAction Stop
+                    Write-Host "DEBUG: Corrupted cache file removed successfully" -ForegroundColor Green
+                } catch {
+                    Write-Warning "Could not remove corrupted cache file: $($_.Exception.Message)"
+                }
                 $credentialStore = @{}
             }
+        } else {
+            Write-Host "DEBUG: No existing cache file found, creating new credential store" -ForegroundColor Cyan
         }
         
         # Create credential object
@@ -54,7 +107,21 @@ function Save-CachedPassword {
         $credentialStore[$Username] = $credential
         
         # Export entire credential store to file (encrypted with user's key)
-        $credentialStore | Export-Clixml -Path $cacheFile -Force
+        try {
+            $credentialStore | Export-Clixml -Path $cacheFile -Force
+            Write-Host "DEBUG: Credential store exported successfully to: $cacheFile" -ForegroundColor Green
+            
+            # Verify the file was written correctly
+            if (Test-Path $cacheFile) {
+                $fileSize = (Get-Item $cacheFile).Length
+                Write-Host "DEBUG: Cache file written successfully ($fileSize bytes)" -ForegroundColor Green
+            } else {
+                throw "Cache file was not created after export"
+            }
+            
+        } catch {
+            throw "Failed to export credential store: $($_.Exception.Message)"
+        }
         
         Write-Host "✓ Password cached securely for user: $Username" -ForegroundColor Green
         return $true
@@ -84,14 +151,40 @@ function Get-CachedPassword {
     try {
         $cacheFile = Get-PasswordCacheFile
         
+        Write-Host "DEBUG: Looking for cached password for user: $Username" -ForegroundColor Magenta
+        Write-Host "DEBUG: Cache file path: $cacheFile" -ForegroundColor Magenta
+        
         if (-not (Test-Path $cacheFile)) {
             Write-Host "DEBUG: Cache file does not exist: $cacheFile" -ForegroundColor Magenta
             return $null
         }
         
-        # Import credential store from file
-        $credentialStore = Import-Clixml -Path $cacheFile
-        Write-Host "DEBUG: Successfully imported credential store from cache file" -ForegroundColor Magenta
+        # Enhanced cache file validation before import
+        try {
+            # Test if file is readable and not empty
+            $fileInfo = Get-Item $cacheFile
+            if ($fileInfo.Length -eq 0) {
+                Write-Warning "Cache file is empty, removing: $cacheFile"
+                Remove-Item $cacheFile -Force
+                return $null
+            }
+            
+            Write-Host "DEBUG: Cache file exists and is readable ($(($fileInfo.Length)) bytes)" -ForegroundColor Cyan
+            
+            # Import credential store from file with validation
+            $credentialStore = Import-Clixml -Path $cacheFile
+            Write-Host "DEBUG: Successfully imported credential store from cache file" -ForegroundColor Green
+            
+        } catch {
+            Write-Warning "Failed to read cache file, removing corrupted file: $($_.Exception.Message)"
+            try {
+                Remove-Item $cacheFile -Force -ErrorAction Stop
+                Write-Host "DEBUG: Corrupted cache file removed" -ForegroundColor Green
+            } catch {
+                Write-Warning "Could not remove corrupted cache file: $($_.Exception.Message)"
+            }
+            return $null
+        }
         
         # Check if this is the old single-credential format
         if ($credentialStore -is [System.Management.Automation.PSCredential]) {
