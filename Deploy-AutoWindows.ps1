@@ -134,15 +134,15 @@ $Script:ExecutionResults = @{
 # Handle password deletion if requested
 if ($DelPw) {
     Write-Host ""
-    Write-Host "🗑️  Password Deletion Requested" -ForegroundColor Yellow
+    Write-Host "Password Deletion Requested" -ForegroundColor Yellow
     Write-Host "================================" -ForegroundColor Yellow
     
     if (Remove-CachedPassword) {
         Write-Host ""
-        Write-Host "✓ Password cache cleared successfully. You will be prompted for password on next run." -ForegroundColor Green
+        Write-Host "Password cache cleared successfully. You will be prompted for password on next run." -ForegroundColor Green
     } else {
         Write-Host ""
-        Write-Host "❌ Failed to clear password cache." -ForegroundColor Red
+        Write-Host "Failed to clear password cache." -ForegroundColor Red
     }
     
     Write-Host ""
@@ -152,7 +152,7 @@ if ($DelPw) {
 # Handle password pre-caching if requested
 if ($CachePasswords) {
     Write-Host ""
-    Write-Host "🔐 Password Pre-Caching Setup" -ForegroundColor Cyan
+    Write-Host "Password Pre-Caching Setup" -ForegroundColor Cyan
     Write-Host "==============================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "This will cache passwords for maximum automation during deployment." -ForegroundColor Yellow
@@ -164,18 +164,18 @@ if ($CachePasswords) {
         Write-Host "1. Caching Prism Central admin password..." -ForegroundColor Cyan
         $adminPassword = Get-CachedPassword -Username "admin" -ForcePrompt
         if ($adminPassword) {
-            Write-Host "✓ Admin password cached successfully" -ForegroundColor Green
+            Write-Host "Admin password cached successfully" -ForegroundColor Green
         }
         
         # Cache VM administrator password
         Write-Host "`n2. Caching VM administrator password..." -ForegroundColor Cyan
         $vmAdminPassword = Get-CachedPassword -Username "vm-administrator" -ForcePrompt
         if ($vmAdminPassword) {
-            Write-Host "✓ VM administrator password cached successfully" -ForegroundColor Green
+            Write-Host "VM administrator password cached successfully" -ForegroundColor Green
         }
         
         Write-Host ""
-        Write-Host "🎉 Password caching complete!" -ForegroundColor Green
+        Write-Host "Password caching complete!" -ForegroundColor Green
         Write-Host "   You can now run deployments with minimal password prompts." -ForegroundColor Green
         Write-Host ""
         Write-Host "Next steps:" -ForegroundColor Yellow
@@ -185,7 +185,7 @@ if ($CachePasswords) {
         
     } catch {
         Write-Host ""
-        Write-Host "❌ Password caching failed: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Password caching failed: $($_.Exception.Message)" -ForegroundColor Red
     }
     
     exit 0
@@ -908,7 +908,7 @@ Phase Results:
     
     # Phase 1 Summary
     if ($Script:ExecutionResults.Phase1.Executed) {
-        $phase1Status = if ($Script:ExecutionResults.Phase1.Success) { "SUCCESS ✓" } else { "FAILED ✗" }
+        $phase1Status = if ($Script:ExecutionResults.Phase1.Success) { "SUCCESS" } else { "FAILED" }
         $summary += "`nPhase 1 (VM Deployment): $phase1Status"
         
         if ($Script:ExecutionResults.Phase1.Success -and $Script:ExecutionResults.Phase1.Results) {
@@ -924,18 +924,18 @@ Phase Results:
     
     # Phase 2 Summary  
     if ($Script:ExecutionResults.Phase2.Executed) {
-        $phase2Status = if ($Script:ExecutionResults.Phase2.Success) { "SUCCESS ✓" } else { "FAILED ✗" }
+        $phase2Status = if ($Script:ExecutionResults.Phase2.Success) { "SUCCESS" } else { "FAILED" }
         $summary += "`nPhase 2 (API Environment): $phase2Status"
         
         if ($Script:ExecutionResults.Phase2.Success -and $Script:ExecutionResults.Phase2.Results) {
             $result = $Script:ExecutionResults.Phase2.Results
             if ($result.ValidationResults) {
                 $validation = $result.ValidationResults
-                $summary += "`n  PowerShell 7: $(if ($validation.PowerShell7) { '✓' } else { '✗' })"
-                $summary += "`n  Python 3.13+: $(if ($validation.Python) { '✓' } else { '✗' })"
-                $summary += "`n  VS Code: $(if ($validation.VSCode) { '✓' } else { '✗' })"
-                $summary += "`n  Git: $(if ($validation.Git) { '✓' } else { '✗' })"
-                $summary += "`n  Repository: $(if ($validation.Repository) { '✓' } else { '✗' })"
+                $summary += "`n  PowerShell 7: $(if ($validation.PowerShell7) { 'YES' } else { 'NO' })"
+                $summary += "`n  Python 3.13+: $(if ($validation.Python) { 'YES' } else { 'NO' })"
+                $summary += "`n  VS Code: $(if ($validation.VSCode) { 'YES' } else { 'NO' })"
+                $summary += "`n  Git: $(if ($validation.Git) { 'YES' } else { 'NO' })"
+                $summary += "`n  Repository: $(if ($validation.Repository) { 'YES' } else { 'NO' })"
             }
         }
     }
@@ -947,7 +947,7 @@ Phase Results:
     $overallSuccess = (!$Script:ExecutionResults.Phase1.Executed -or $Script:ExecutionResults.Phase1.Success) -and
                      (!$Script:ExecutionResults.Phase2.Executed -or $Script:ExecutionResults.Phase2.Success)
     
-    $overallStatus = if ($overallSuccess) { "SUCCESS ✓" } else { "FAILED ✗" }
+    $overallStatus = if ($overallSuccess) { "SUCCESS" } else { "FAILED" }
     $summary += "`n`nOverall Status: $overallStatus"
     
     # Next Steps
@@ -1025,8 +1025,8 @@ function Start-AutoWindowsDeployment {
         if (!$NonInteractive) {
             Write-Host ""
             Write-Host "Execution Plan:" -ForegroundColor Yellow
-            if ($executePhase1) { Write-Host "  ✓ Phase 1: Windows VM Deployment" -ForegroundColor Green }
-            if ($executePhase2) { Write-Host "  ✓ Phase 2: Nutanix v4 API Environment Setup" -ForegroundColor Green }
+            if ($executePhase1) { Write-Host "  Phase 1: Windows VM Deployment" -ForegroundColor Green }
+            if ($executePhase2) { Write-Host "  Phase 2: Nutanix v4 API Environment Setup" -ForegroundColor Green }
             Write-Host ""
             
             $confirm = Read-Host "Proceed with Auto-Windows deployment? (Y/n)"

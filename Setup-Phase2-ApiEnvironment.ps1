@@ -65,7 +65,7 @@ function Write-StepResult {
         [string]$Error = ""
     )
     
-    $status = if ($Success) { "✓ SUCCESS" } else { "✗ FAILED" }
+    $status = if ($Success) { "SUCCESS" } else { "FAILED" }
     $color = if ($Success) { "Green" } else { "Red" }
     
     Write-Host "[$status] $StepName" -ForegroundColor $color
@@ -83,7 +83,7 @@ function Write-StepResult {
 function Test-VMConnectivity {
     param([string]$IPAddress, [System.Management.Automation.PSCredential]$Credential, [bool]$UseHTTPS)
     
-    Write-Host "`n🔍 Testing VM Connectivity..." -ForegroundColor Cyan
+    Write-Host "`nTesting VM Connectivity..." -ForegroundColor Cyan
     
     try {
         $sessionOptions = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
@@ -394,7 +394,7 @@ function Clone-ApiRepository {
 function Install-ApiEnvironment {
     param([object]$Session, [string]$RepoPath)
     
-    Write-Host "`n🚀 Installing Nutanix v4 API Environment..." -ForegroundColor Cyan
+    Write-Host "`nInstalling Nutanix v4 API Environment..." -ForegroundColor Cyan
     
     $installResult = Invoke-Command -Session $Session -ArgumentList $RepoPath.Trim() -ScriptBlock {
         param($RepoPath)
@@ -484,12 +484,12 @@ function Install-ApiEnvironment {
     
     if ($installResult.Success) {
         Write-StepResult "API Environment Installation" $true "Script executed: $($installResult.ScriptPath)"
-        Write-Host "`n📋 Installation Output:" -ForegroundColor Cyan
+        Write-Host "`nInstallation Output:" -ForegroundColor Cyan
         Write-Host $installResult.Output -ForegroundColor Gray
     } else {
         Write-StepResult "API Environment Installation" $false "" $installResult.Error
         if ($installResult.Output) {
-            Write-Host "`n📋 Script Output:" -ForegroundColor Yellow
+            Write-Host "`nScript Output:" -ForegroundColor Yellow
             Write-Host $installResult.Output -ForegroundColor Gray
         }
         return $false
@@ -508,7 +508,7 @@ Write-Host "Connection: $(if($UseHTTPS){'HTTPS (Port 5986) - SSL Certificate Byp
 if (-not $VMCredential) {
     $VMCredential = Get-VMCredentials
     if (-not $VMCredential) {
-        Write-Host "❌ Cannot proceed without VM credentials." -ForegroundColor Red
+        Write-Host "Cannot proceed without VM credentials." -ForegroundColor Red
         exit 1
     }
 }
@@ -516,7 +516,7 @@ if (-not $VMCredential) {
 # Test VM connectivity
 $connectivityTest = Test-VMConnectivity -IPAddress $VMIPAddress -Credential $VMCredential -UseHTTPS:$UseHTTPS
 if (-not $connectivityTest) {
-    Write-Host "❌ Cannot connect to VM. Please check VM status and credentials." -ForegroundColor Red
+    Write-Host "Cannot connect to VM. Please check VM status and credentials." -ForegroundColor Red
     exit 1
 }
 
@@ -547,21 +547,21 @@ try {
     # Execute Phase 2 installation steps
     $gitInstallSuccess = Install-GitOnVM -Session $session
     if (-not $gitInstallSuccess) {
-        Write-Host "❌ Git installation failed. Cannot proceed with repository clone." -ForegroundColor Red
+        Write-Host "Git installation failed. Cannot proceed with repository clone." -ForegroundColor Red
         Remove-PSSession -Session $session
         exit 1
     }
     
     $repoPath = Clone-ApiRepository -Session $session -RepoURL $RepositoryURL
     if (-not $repoPath) {
-        Write-Host "❌ Repository clone failed. Cannot proceed with installation." -ForegroundColor Red
+        Write-Host "Repository clone failed. Cannot proceed with installation." -ForegroundColor Red
         Remove-PSSession -Session $session
         exit 1
     }
     
     $apiInstallSuccess = Install-ApiEnvironment -Session $session -RepoPath $repoPath
     if (-not $apiInstallSuccess) {
-        Write-Host "❌ API environment installation failed." -ForegroundColor Red
+        Write-Host "API environment installation failed." -ForegroundColor Red
         Remove-PSSession -Session $session
         exit 1
     }
@@ -570,7 +570,7 @@ try {
     Remove-PSSession -Session $session
     
     Write-Host "`n" + ("=" * 80) -ForegroundColor Magenta
-    Write-Host "🎉 PHASE 2 INSTALLATION COMPLETED SUCCESSFULLY!" -ForegroundColor Green
+    Write-Host "PHASE 2 INSTALLATION COMPLETED SUCCESSFULLY!" -ForegroundColor Green
     Write-Host "`nYour VM is now set up with:" -ForegroundColor Cyan
     Write-Host "  ✓ Git for version control" -ForegroundColor Green
     Write-Host "  ✓ Nutanix v4 API development environment" -ForegroundColor Green

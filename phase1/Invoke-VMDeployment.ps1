@@ -116,14 +116,14 @@ function Invoke-InteractiveDeployment {
         $securePassword = Get-CachedPassword -Username $Config.prismCentral.username
         if ($securePassword) {
             $pcPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
-            Write-Host "✓ Using cached Prism Central password" -ForegroundColor Green
+            Write-Host "Using cached Prism Central password" -ForegroundColor Green
         } else {
             Write-Host "Prism Central Password:" -ForegroundColor Cyan
             $securePassword = Set-CachedPassword -Username $Config.prismCentral.username
             $pcPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
         }
     } catch {
-        Write-Host "⚠️  Password manager failed, using manual entry: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "Password manager failed, using manual entry: $($_.Exception.Message)" -ForegroundColor Yellow
         $securePassword = Read-Host "Enter Prism Central password for $($Config.prismCentral.username)" -AsSecureString
         $pcPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
     }
@@ -392,7 +392,7 @@ function Get-AdminPassword {
         if ($securePassword) {
             # Convert SecureString to plain text
             $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
-            Write-Host "✓ Using cached VM Administrator password" -ForegroundColor Green
+            Write-Host "Using cached VM Administrator password" -ForegroundColor Green
             return $plainPassword
         }
         else {
@@ -400,7 +400,7 @@ function Get-AdminPassword {
         }
     }
     catch {
-        Write-Host "⚠️  Password manager error: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "Password manager error: $($_.Exception.Message)" -ForegroundColor Yellow
         Write-Host "ℹ️  Continuing with manual password entry" -ForegroundColor Cyan
     }
     do {
@@ -427,9 +427,9 @@ function Get-AdminPassword {
             try {
                 $secureVMPassword = ConvertTo-SecureString $pwd1 -AsPlainText -Force
                 Set-CachedPassword -Username "vm-administrator" -SecurePassword $secureVMPassword | Out-Null
-                Write-Host "✓ VM Administrator password cached for future use" -ForegroundColor Green
+                Write-Host "VM Administrator password cached for future use" -ForegroundColor Green
             } catch {
-                Write-Host "⚠️  Failed to cache password: $($_.Exception.Message)" -ForegroundColor Yellow
+                Write-Host "Failed to cache password: $($_.Exception.Message)" -ForegroundColor Yellow
             }
         }
         

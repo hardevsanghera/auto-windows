@@ -66,7 +66,7 @@ function Write-TestResult {
         [string]$Recommendation = ""
     )
     
-    $status = if ($Success) { "✓ PASS" } else { "✗ FAIL" }
+    $status = if ($Success) { "PASS" } else { "FAIL" }
     $color = if ($Success) { "Green" } else { "Red" }
     
     Write-Host "[$status] $TestName" -ForegroundColor $color
@@ -81,13 +81,13 @@ function Write-TestResult {
 function Add-ToTrustedHosts {
     param([string]$IPAddress)
     
-    Write-Host "`n🔧 Configuring TrustedHosts for PowerShell Remoting..." -ForegroundColor Cyan
+    Write-Host "`nConfiguring TrustedHosts for PowerShell Remoting..." -ForegroundColor Cyan
     
     # Check if running as administrator
     $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
     
     if (-not $isAdmin) {
-        Write-Host "❌ Administrator privileges required to modify TrustedHosts." -ForegroundColor Red
+        Write-Host "Administrator privileges required to modify TrustedHosts." -ForegroundColor Red
         Write-Host "   Please run PowerShell as Administrator to use -AddToTrusted switch." -ForegroundColor Yellow
         return $false
     }
@@ -306,7 +306,7 @@ function Test-NetworkConnectivity {
 function Test-PowerShellRemoting {
     param([string]$IPAddress, [System.Management.Automation.PSCredential]$Credential)
     
-    Write-Host "`n🔧 Testing PowerShell Remoting..." -ForegroundColor Cyan
+    Write-Host "`nTesting PowerShell Remoting..." -ForegroundColor Cyan
     
     try {
         # Create session options for better compatibility
@@ -375,11 +375,11 @@ function Test-PowerShellRemoting {
             Write-TestResult "PowerShell Session Creation (HTTPS)" $false "HTTPS not available: $($_.Exception.Message)" "Configure HTTPS listener with Enable-RemoteWinRMHTTPS.ps1"
             
             # Ask user if they want to configure WinRM HTTPS
-            Write-Host "`n💡 WinRM HTTPS is not configured on the target VM." -ForegroundColor Yellow
+            Write-Host "`nWinRM HTTPS is not configured on the target VM." -ForegroundColor Yellow
             $configureHTTPS = Read-Host "Would you like to automatically configure WinRM HTTPS (port 5986) on the remote VM? (y/N)"
             
             if ($configureHTTPS -match '^[Yy]') {
-                Write-Host "`n🔧 Configuring WinRM HTTPS on remote VM..." -ForegroundColor Cyan
+                Write-Host "`nConfiguring WinRM HTTPS on remote VM..." -ForegroundColor Cyan
                 
                 # Create a new session for configuration since we closed the previous one
                 $configSession = New-PSSession -ComputerName $IPAddress -Port 5985 -Credential $Credential -SessionOption $sessionOptions -ErrorAction SilentlyContinue
@@ -412,10 +412,10 @@ function Test-PowerShellRemoting {
                             Write-TestResult "PowerShell Session Creation (HTTPS) - Retry" $false "HTTPS still not working: $($_.Exception.Message)" "Manual configuration may be required"
                         }
                     } else {
-                        Write-Host "❌ Failed to configure WinRM HTTPS automatically." -ForegroundColor Red
+                        Write-Host "Failed to configure WinRM HTTPS automatically." -ForegroundColor Red
                     }
                 } else {
-                    Write-Host "❌ Could not create session for HTTPS configuration." -ForegroundColor Red
+                    Write-Host "Could not create session for HTTPS configuration." -ForegroundColor Red
                 }
             } else {
                 Write-Host "   Skipping WinRM HTTPS configuration." -ForegroundColor Gray
@@ -521,7 +521,7 @@ function Test-WindowsFeatures {
 function Test-Phase2Prerequisites {
     param([string]$IPAddress, [System.Management.Automation.PSCredential]$Credential)
     
-    Write-Host "`n🎯 Testing Phase 2 API Prerequisites..." -ForegroundColor Cyan
+    Write-Host "`nTesting Phase 2 API Prerequisites..." -ForegroundColor Cyan
     
     try {
         $session = New-PSSession -ComputerName $IPAddress -Credential $Credential -ErrorAction Stop
@@ -619,13 +619,13 @@ function Test-Phase2Prerequisites {
 # Use centralized Get-VMCredentials function from PasswordManager.ps1
 <#
 function Get-VMCredentials {
-    Write-Host "`n🔐 Getting VM Credentials..." -ForegroundColor Cyan
+    Write-Host "`nGetting VM Credentials..." -ForegroundColor Cyan
     
     # Try to get cached VM administrator password
     $vmPassword = Get-CachedPassword -Username "vm-administrator"
     
     if ($vmPassword) {
-        Write-Host "✓ Using cached password for: vm-administrator" -ForegroundColor Green
+        Write-Host "Using cached password for: vm-administrator" -ForegroundColor Green
         
         # Handle both SecureString and plain text passwords
         if ($vmPassword -is [System.Security.SecureString]) {
@@ -660,17 +660,17 @@ function Show-ReadinessSummary {
     
     # Categorize readiness
     if ($readinessPercentage -ge 90) {
-        Write-Host "`n🎉 VM IS READY FOR PHASE 2!" -ForegroundColor Green
+        Write-Host "`nVM IS READY FOR PHASE 2!" -ForegroundColor Green
         Write-Host "   The VM can accept PowerShell commands and is prepared for Nutanix v4 API setup." -ForegroundColor Green
     } elseif ($readinessPercentage -ge 70) {
-        Write-Host "`n⚠️ VM IS MOSTLY READY" -ForegroundColor Yellow
+        Write-Host "`nVM IS MOSTLY READY" -ForegroundColor Yellow
         Write-Host "   Minor issues detected. Phase 2 can proceed with some manual configuration." -ForegroundColor Yellow
     } else {
-        Write-Host "`n❌ VM NEEDS PREPARATION" -ForegroundColor Red
+        Write-Host "`nVM NEEDS PREPARATION" -ForegroundColor Red
         Write-Host "   Significant issues detected. Resolve failing tests before Phase 2." -ForegroundColor Red
     }
     
-    Write-Host "`n📋 Next Steps for Phase 2:" -ForegroundColor Cyan
+    Write-Host "`nNext Steps for Phase 2:" -ForegroundColor Cyan
     Write-Host "   1. Install Nutanix PowerShell modules" -ForegroundColor White
     Write-Host "   2. Configure Nutanix v4 API credentials" -ForegroundColor White
     Write-Host "   3. Set up development environment (VS Code, Git)" -ForegroundColor White
@@ -686,7 +686,7 @@ Write-Host "Test Level: $TestLevel" -ForegroundColor White
 if ($AddToTrusted) {
     $trustedHostsResult = Add-ToTrustedHosts -IPAddress $VMIPAddress
     if (-not $trustedHostsResult) {
-        Write-Host "⚠️ TrustedHosts configuration failed, but continuing with tests..." -ForegroundColor Yellow
+        Write-Host "TrustedHosts configuration failed, but continuing with tests..." -ForegroundColor Yellow
     }
 }
 
@@ -695,7 +695,7 @@ if (-not $VMCredential) {
     # Use centralized credential function with validation
     $VMCredential = Get-VMCredentials -ValidateCredentials -VMIPAddress $VMIPAddress
     if (-not $VMCredential) {
-        Write-Host "❌ Cannot proceed without VM credentials." -ForegroundColor Red
+        Write-Host "Cannot proceed without VM credentials." -ForegroundColor Red
         exit 1
     }
 }
@@ -719,7 +719,7 @@ if ($testResults.NetworkConnectivity) {
         }
     }
 } else {
-    Write-Host "`n❌ Network connectivity failed. Cannot proceed with remote tests." -ForegroundColor Red
+    Write-Host "`nNetwork connectivity failed. Cannot proceed with remote tests." -ForegroundColor Red
 }
 
 # Show summary

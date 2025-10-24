@@ -345,7 +345,7 @@ if ($ipAddresses -and $ipAddresses.Count -gt 0) {
     # Use Select-Object to get the first item to avoid indexing issues
     $primaryIP = $ipAddresses | Select-Object -First 1
     
-    Write-Host "🎯 VM IP ADDRESS FOUND!" -ForegroundColor Green
+    Write-Host "VM IP ADDRESS FOUND!" -ForegroundColor Green
     Write-Host "   VM Name: $targetVMName" -ForegroundColor White
     Write-Host "   IP Address: $primaryIP" -ForegroundColor Green
     
@@ -353,7 +353,7 @@ if ($ipAddresses -and $ipAddresses.Count -gt 0) {
         Write-Host "   Additional IPs: $($ipAddresses[1..($ipAddresses.Count-1)] -join ', ')" -ForegroundColor Gray
     }
     
-    Write-Host "`n💡 Connection Options:" -ForegroundColor Cyan
+    Write-Host "`nConnection Options:" -ForegroundColor Cyan
     Write-Host "   RDP: mstsc /v:$primaryIP" -ForegroundColor White
     Write-Host "   SSH: ssh Administrator@$primaryIP" -ForegroundColor White
     Write-Host "   PowerShell: Enter-PSSession -ComputerName $primaryIP -Credential Administrator" -ForegroundColor White
@@ -365,7 +365,7 @@ if ($ipAddresses -and $ipAddresses.Count -gt 0) {
     Write-Host "⏳ VM IP ADDRESS NOT AVAILABLE YET" -ForegroundColor Yellow
     Write-Host "   VM Name: $targetVMName" -ForegroundColor White
     Write-Host "   Status: VM is powered on but no IP assigned" -ForegroundColor Yellow
-    Write-Host "`n💡 This is normal for new VMs. Common reasons:" -ForegroundColor Cyan
+    Write-Host "`nThis is normal for new VMs. Common reasons:" -ForegroundColor Cyan
     Write-Host "   • VM is still booting (Windows can take 5-10 minutes)" -ForegroundColor Gray
     Write-Host "   • DHCP server hasn't assigned an IP yet" -ForegroundColor Gray
     Write-Host "   • Network drivers are installing" -ForegroundColor Gray

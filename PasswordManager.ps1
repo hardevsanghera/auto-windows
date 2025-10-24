@@ -123,11 +123,11 @@ function Save-CachedPassword {
             throw "Failed to export credential store: $($_.Exception.Message)"
         }
         
-        Write-Host "✓ Password cached securely for user: $Username" -ForegroundColor Green
+        Write-Host "Password cached securely for user: $Username" -ForegroundColor Green
         return $true
     }
     catch {
-        Write-Host "⚠️  Failed to cache password: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "Failed to cache password: $($_.Exception.Message)" -ForegroundColor Yellow
         return $false
     }
 }
@@ -156,7 +156,7 @@ function Get-CachedPassword {
     
     # Handle ForcePrompt - prompt for new password and cache it
     if ($ForcePrompt) {
-        Write-Host "🔐 Enter password for user: $Username" -ForegroundColor Cyan
+        Write-Host "Enter password for user: $Username" -ForegroundColor Cyan
         $securePassword = Read-Host "Password" -AsSecureString
         
         if ($securePassword -and $securePassword.Length -gt 0) {
@@ -221,7 +221,7 @@ function Get-CachedPassword {
         
         # Look up the specific username
         if ($credentialStore.ContainsKey($Username)) {
-            Write-Host "✓ Using cached password for: $Username" -ForegroundColor Green
+            Write-Host "Using cached password for: $Username" -ForegroundColor Green
             $retrievedPassword = $credentialStore[$Username].Password
             
             # DEBUG: Show password details
@@ -233,7 +233,7 @@ function Get-CachedPassword {
         else {
             # List available cached users for debugging
             $cachedUsers = $credentialStore.Keys -join ", "
-            Write-Host "⚠️  No cached password for user: $Username" -ForegroundColor Yellow
+            Write-Host "No cached password for user: $Username" -ForegroundColor Yellow
             if ($cachedUsers) {
                 Write-Host "   Available cached users: $cachedUsers" -ForegroundColor Gray
             }
@@ -242,7 +242,7 @@ function Get-CachedPassword {
         }
     }
     catch {
-        Write-Host "⚠️  Failed to retrieve cached password: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "Failed to retrieve cached password: $($_.Exception.Message)" -ForegroundColor Yellow
         Write-Host "DEBUG: Exception details: $($_.Exception)" -ForegroundColor Magenta
         return $null
     }
@@ -276,9 +276,9 @@ function Remove-CachedPassword {
                 # Old single-credential format
                 if ($credentialData.UserName -eq $Username) {
                     Remove-Item -Path $cacheFile -Force
-                    Write-Host "✓ Password cache cleared for user: $Username" -ForegroundColor Green
+                    Write-Host "Password cache cleared for user: $Username" -ForegroundColor Green
                 } else {
-                    Write-Host "⚠️  User '$Username' not found in cache" -ForegroundColor Yellow
+                    Write-Host "User '$Username' not found in cache" -ForegroundColor Yellow
                 }
             }
             elseif ($credentialData -is [hashtable]) {
@@ -289,24 +289,24 @@ function Remove-CachedPassword {
                     if ($credentialData.Count -eq 0) {
                         # No users left, remove the file
                         Remove-Item -Path $cacheFile -Force
-                        Write-Host "✓ Last password removed, cache cleared" -ForegroundColor Green
+                        Write-Host "Last password removed, cache cleared" -ForegroundColor Green
                     } else {
                         # Save updated cache
                         $credentialData | Export-Clixml -Path $cacheFile -Force
-                        Write-Host "✓ Password cleared for user: $Username" -ForegroundColor Green
+                        Write-Host "Password cleared for user: $Username" -ForegroundColor Green
                     }
                 } else {
-                    Write-Host "⚠️  User '$Username' not found in cache" -ForegroundColor Yellow
+                    Write-Host "User '$Username' not found in cache" -ForegroundColor Yellow
                 }
             }
         } else {
             # Remove all passwords
             Remove-Item -Path $cacheFile -Force
-            Write-Host "✓ All password caches cleared" -ForegroundColor Green
+            Write-Host "All password caches cleared" -ForegroundColor Green
         }
     }
     catch {
-        Write-Host "❌ Failed to clear password cache: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Failed to clear password cache: $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
     
@@ -355,14 +355,14 @@ function Get-AdminPassword {
     }
     
     # Prompt for password
-    Write-Host "🔐 Enter password for $Username (will be cached for future use):" -ForegroundColor Cyan
+    Write-Host "Enter password for $Username (will be cached for future use):" -ForegroundColor Cyan
     $password = Read-Host -AsSecureString
     
     # Validate password is not empty
     $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
     Write-Host "DEBUG: Entered password for '$Username': '$plainPassword' (Length: $($plainPassword.Length))" -ForegroundColor Magenta
     if ([string]::IsNullOrEmpty($plainPassword)) {
-        Write-Host "❌ Password cannot be empty" -ForegroundColor Red
+        Write-Host "Password cannot be empty" -ForegroundColor Red
         return $null
     }
     
@@ -410,23 +410,23 @@ function Show-PasswordCacheStatus {
             
             # Handle both old single-credential and new multi-credential formats
             if ($credentialData -is [System.Management.Automation.PSCredential]) {
-                Write-Host "✓ Password cached for user: $($credentialData.UserName)" -ForegroundColor Green
+                Write-Host "Password cached for user: $($credentialData.UserName)" -ForegroundColor Green
             }
             elseif ($credentialData -is [hashtable]) {
-                Write-Host "✓ Passwords cached for $($credentialData.Count) user(s):" -ForegroundColor Green
+                Write-Host "Passwords cached for $($credentialData.Count) user(s):" -ForegroundColor Green
                 foreach ($username in $credentialData.Keys) {
                     Write-Host "  - $username" -ForegroundColor Green
                 }
             }
             else {
-                Write-Host "⚠️  Unknown cache format" -ForegroundColor Yellow
+                Write-Host "Unknown cache format" -ForegroundColor Yellow
             }
             
             Write-Host "  Created: $($fileInfo.CreationTime)" -ForegroundColor Gray
             Write-Host "  Last Modified: $($fileInfo.LastWriteTime)" -ForegroundColor Gray
         }
         catch {
-            Write-Host "⚠️  Cache file exists but is corrupted: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "Cache file exists but is corrupted: $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
     else {
@@ -458,14 +458,14 @@ function Get-VMCredentials {
         [string]$VMIPAddress
     )
     
-    Write-Host "`n🔐 Getting VM Credentials..." -ForegroundColor Cyan
+    Write-Host "`nGetting VM Credentials..." -ForegroundColor Cyan
     
     if (-not $ForcePrompt) {
         # Try to get cached VM administrator password
         $vmPassword = Get-CachedPassword -Username "vm-administrator"
         
         if ($vmPassword) {
-            Write-Host "✓ Using cached password for: vm-administrator" -ForegroundColor Green
+            Write-Host "Using cached password for: vm-administrator" -ForegroundColor Green
             
             # Handle both SecureString and plain text passwords
             if ($vmPassword -is [System.Security.SecureString]) {
@@ -478,12 +478,12 @@ function Get-VMCredentials {
             
             # Validate credentials if requested
             if ($ValidateCredentials -and $VMIPAddress) {
-                Write-Host "🔍 Validating cached credentials..." -ForegroundColor Yellow
+                Write-Host "Validating cached credentials..." -ForegroundColor Yellow
                 if (Test-VMCredentials -Credential $credential -VMIPAddress $VMIPAddress) {
-                    Write-Host "✓ Cached credentials validated successfully" -ForegroundColor Green
+                    Write-Host "Cached credentials validated successfully" -ForegroundColor Green
                     return $credential
                 } else {
-                    Write-Host "❌ Cached credentials failed validation, prompting for new password" -ForegroundColor Red
+                    Write-Host "Cached credentials failed validation, prompting for new password" -ForegroundColor Red
                     # Remove invalid cached password
                     Remove-CachedPassword -Username "vm-administrator"
                 }
@@ -500,7 +500,7 @@ function Get-VMCredentials {
     if ($credential) {
         # Cache the new password
         Save-CachedPassword -Username "vm-administrator" -Password $credential.Password
-        Write-Host "✓ New password cached for future use" -ForegroundColor Green
+        Write-Host "New password cached for future use" -ForegroundColor Green
     }
     
     return $credential
